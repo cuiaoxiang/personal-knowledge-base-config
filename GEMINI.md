@@ -124,9 +124,7 @@
 5. **安全准则**：重构涉及核心资产的大规模结构变动，Agent 必须先出具详细的实施方案（Implementation Plan），在获取用户的显式 Review 和 Approve 后方可批量修改。
 6. **保持物理扁平**：所有词条统一存放在 `wiki/` 一级文件夹内，靠 MOC 和双链建立多维度归类，避免深层文件夹嵌套导致的路径破损。
 
----
-
-## 6. 知识库系统边界与防污染准则 (Strict Boundaries & Anti-Hallucination)
+## 5. 知识库系统边界与防污染准则 (Strict Boundaries & Anti-Hallucination)
 
 在知识库的架构演进与结晶过程中，Agent 必须绝对遵守以下护栏原则，严禁越界：
 
@@ -139,10 +137,53 @@
 
 ---
 
-## 7. 吞吐量与认知边界 (Cognitive Limits & Batching)
+## 6. 吞吐量与认知边界 (Cognitive Limits & Batching)
 
 为了避免 Agent 在处理大量原始文献时发生上下文过载（Context Overflow）、幻觉增加以及“贪多嚼不烂”导致的提炼质量下降，系统在进行 Ingest 和 Scale 归档时必须严格遵守分批处理上限：
 
 1. **单次处理总行数上限**：每次执行归档（Crystallize）任务时，Agent 一次性读取并处理的 `sources/` 源文件总行数**不得超过 1000 行**（或物理文件大小约 40KB - 50KB）。
 2. **单次文件数量上限**：每次归档周期的源文件数量建议控制在 **2 - 4 个** 以内。
 3. **强制分批（Batching）**：当遇到包含 5 个以上文件或总行数远超 1000 行的目录归档指令时，Agent **必须主动拒绝一次性吞入**。Agent 需自行制定“分批实施方案（Batch Implementation Plan）”（例如：Batch 1 处理硬件相关，Batch 2 处理软件配置），并在每完成一个 Batch 后清理上下文，再向用户请求继续执行下一个 Batch。
+
+---
+
+## 附录 A：知识库的两个 Cronjob
+
+本附录用于安全存放系统级的自动化脚本代码。将它们写在这里，能够确保随着 Git 白名单机制一同备份至云端，在物理设备损坏时快速重建整个生命周期维护流水线。
+
+### A.1 系统的 Crontab
+
+**安装部署方式**：
+直接在 macOS 终端复制并执行以下单行命令（使用了 Bash 隔离防止 Shell 转义冲突）：
+
+```bash
+bash -c '(crontab -l 2>/dev/null; echo "0 12 * * 0 cd \"$HOME/Library/Mobile Documents/iCloud~md~obsidian/Documents/个人知识库\" && git add GEMINI.md SOUL.md wiki/README.md sources/README.md .gitignore && git commit -m \"chore: weekly auto-sync\" && git push -q") | crontab -'
+```
+
+### A.2 Antigravity 的 Scheduled Task
+
+依赖 Antigravity Manager 的大模型调度能力，负责执行高度智能化的 Lint（孤立附件清理、时效衰减定级）与 Scale（词条合并、知识抽取）任务。
+
+**部署方式**：
+通过 `/schedule` 唤醒 Agent，并下达对应的 Prompt；或者在 Antigravity 界面侧边栏的 Scheduled Tasks 模块里直接添加。
+
+- **Cron 表达式**: `0 0 * * *` (每日凌晨 0:00)
+- **Prompt**: 
+  ```text
+  请前往 /Users/cuiaoxiang/Library/Mobile Documents/iCloud~md~obsidian/Documents/个人知识库 目录，执行日常自愈维护。
+
+  ⚠️【重要：会话命名规则】
+  启动后，请立即将当前会话的标题命名为 `🌙YYYY/MM/DD`（请根据当前执行任务的系统时间动态替换，例如：若今天是 2026 年 6 月 12 日，则标题为 `🌙2026/06/12`）。
+
+  ⚠️【执行限制】
+  【全流程严禁调用系统终端命令行或运行 Python 脚本】，请纯粹利用你原生的读取与编辑 API（如 list_dir, view_file, grep_search, replace_file_content, write_to_file 等）完成以下工作：
+
+  1. **死链检查与修复**：遍历个人知识库词条，检查是否有死链，如有则使用 replace_file_content 直接修复。
+  2. **置信度时效衰减**：根据 GEMINI.md 规范，检查词条的 confidence 属性，将 last_confirmed 超过半年的词条进行置信度衰减扣减（无须用户介入，但若涉及归档操作需呈报）。
+  3. **外部 Vault 知识同步**：严格且仅限扫描外部 Vault 的以下两个白名单目录：
+     - /Users/cuiaoxiang/Library/Mobile Documents/iCloud~md~obsidian/Documents/个人笔记/LLM 学习
+     - /Users/cuiaoxiang/Library/Mobile Documents/iCloud~md~obsidian/Documents/个人笔记/码农的自我修养
+     寻找最近 24 小时内有更新或新增的内容（遵循跨 Vault 只读准则，严禁物理拷贝文本，采用 obsidian:// 协议溯源），提取新知识并同步更新到本库的 Wiki 层。
+  4. **MOC 架构重构 (Scale)**：若某一垂直领域的关联词条数量达到 5-10 篇，自动编译或更新该领域的 MOC 页面，并自动修复所有双链引用。
+  5. **生成诊断报告**：自愈维护完成后，自动生成一份本次自愈维护的诊断报告（包含置信度衰减统计、死链修复清单、外部知识库同步提取的词条与摘要，以及本次新增 MOC 规划），保存为本地 markdown 格式（作为 artifact 存储）并展示给用户。
+  ```
