@@ -183,7 +183,7 @@ bash -c '(crontab -l 2>/dev/null; echo "0 12 * * 0 cd \"$HOME/Library/Mobile Doc
   3. **外部 Vault 知识同步**：严格且仅限扫描外部 Vault 的以下两个白名单目录：
      - /Users/cuiaoxiang/Library/Mobile Documents/iCloud~md~obsidian/Documents/个人笔记/LLM 学习
      - /Users/cuiaoxiang/Library/Mobile Documents/iCloud~md~obsidian/Documents/个人笔记/码农的自我修养
-     寻找最近 24 小时内有更新或新增的内容（遵循跨 Vault 只读准则，严禁物理拷贝文本，采用 obsidian:// 协议溯源），提取新知识并同步更新到本库的 Wiki 层。
+     读取本库根目录下的 `.last_sync_time` 隐藏文件（记录上次自愈维护成功的时间戳）。若不存在，则默认扫描最近 24 小时内有更新的内容；若存在，则扫描自上次同步时间（该时间戳）以来有更新或新增的内容（遵循跨 Vault 只读准则，严禁物理拷贝文本，采用 obsidian:// 协议溯源），提取新知识并同步更新到本库的 Wiki 层。
   4. **MOC 架构重构 (Scale)**：若某一垂直领域的关联词条数量达到 5-10 篇，自动编译或更新该领域的 MOC 页面，并自动修复所有双链引用。
-  5. **生成诊断报告**：自愈维护完成后，自动生成一份本次自愈维护的诊断报告（包含置信度衰减统计、死链修复清单、外部知识库同步提取的词条与摘要，以及本次新增 MOC 规划），保存为本地 markdown 格式（作为 artifact 存储）并展示给用户。
+  5. **生成诊断报告与更新状态**：自愈维护完成后，自动生成一份本次自愈维护的诊断报告（包含置信度衰减统计、死链修复清单、外部知识库同步提取的词条与摘要，以及本次新增 MOC 规划），保存为本地 markdown 格式（作为 artifact 存储）并展示给用户。同时，将本次成功运行的当前时间戳（格式为 YYYY-MM-DD HH:mm:ss 或 Unix 时间戳）写入本库根目录下的 `.last_sync_time` 文件中，以重置增量同步起点。
   ```
