@@ -1,15 +1,16 @@
-# LLM Wiki 架构规范 (GEMINI.md)
+# 📑 LLM Wiki 架构规范 (GEMINI.md)
 
 本文件定义了使用 LLM 智能体作为图书管理员来管理个人知识库（个人知识库）的架构模式、规则、工作流和生命周期维护策略。
 
 ---
 
-## 0. 全局语言约定 (Global Language Policy)
-**“中文优先”原则**：在这个知识库的所有层级中（包括文件命名、大纲标题、正文内容、MOC 目录等），除了不可翻译的专业术语或代码库原名（如 API 名称、协议、专有名词）外，必须**尽可能使用中文**作为主要语言进行创作与组织。
+## 🌐 全局语言与排版约定 (Global Language & Formatting Policy)
+* **“中文优先”原则**：在这个知识库的所有层级中（包括文件命名、大纲标题、正文内容、MOC 目录等），除了不可翻译的专业术语或代码库原名（如 API 名称、协议、专有名词）外，必须**尽可能使用中文**作为主要语言进行创作与组织。
+* **“核心文档 Emoji 标识”原则**：对于重要的全局规范、宪章等核心文档（例如 `GEMINI.md`、`SOUL.md`），必须在第一、二级标题前加上合适的 Emoji 前缀，而三级及以下子标题不加 Emoji。
 
 ---
 
-## 1. 目录结构
+## 📁 目录结构
 
 知识库组织为三个核心层：
 
@@ -27,17 +28,18 @@
     - **规范 2 (YAML 属性)**：以上所有文件必须在 YAML Frontmatter 中包含 `tags`（如 `tags: [chat]` 或 `tags: [clippings]`）。其中，`[Chat]` 类的对话总结必须包含 `last_modified_timestamp`（最后修改时间戳）以触发增量同步；而 `[Clippings]` 类网页剪藏由于内容固定，保留原有的 `created`（创建日期）属性即可，无需添加最后修改时间戳。
   - **分布式外部节点**：外部 Vault（如“个人笔记”）中被授权的特定文件夹被视为逻辑挂载点。Agent 严禁向本地拷贝其文本，必须采取“物理解耦、逻辑统一”的存算分离读取架构，从而避免数据冗余。
 - **`wiki/`**：包含合并提炼后的知识。其中的每个页面都对应一个具体的**实体**（项目、技术、概念、人物、决策等）。
+  - **规范 1 (标题排版)**：为了保持文档整洁与自愈重构逻辑的精准，编译后的百科词条正文中的各级章节标题（`##`、`###` 等）**一律不使用数字编号前缀**（例如：必须使用 `## 核心架构`，严禁使用 `## 1. 核心架构`，但类似 `## 2026年巅峰算力` 等表示数据或年份而非章节序号的数字不在此限制内）。
 - **`index.md`**：供人类阅读的 `wiki/` 页面总导航目录。
 
 ---
 
-## 2. 信息生命周期与合并层级
+## ⏳ 信息生命周期与合并层级
 
 知识随着置信度增长，在知识库内进行分层提炼：
 
 1. **工作记忆 (Working Memory - sources/)**：未处理的原始日志、剪藏与片段。
 2. **情境记忆 (Episodic Memory)**：会话或特定任务的阶段性总结。
-3. **语义记忆 (Semantic Memory - wiki/)**：高密度的结构化事实、实体和关系页面。
+3. **语义记忆 (Semantic Memory - wiki/)**：高密度的结构化事实、实体和关系页面，以及针对复杂主题的**综合分析报告 (Synthesis)**。
 4. **程序记忆 (Procedural Memory)**：可复用的工作流和执行规范（如本规范本身）。
 
 ### 置信度与衰减
@@ -55,7 +57,7 @@
 
 ---
 
-## 3. 知识图谱与实体提取
+## 🕸️ 知识图谱与实体提取
 
 编译原始资料时，需提取结构化实体并记录其类型化的关联：
 
@@ -65,6 +67,7 @@
 - **Concept (概念)**：理论想法、学术概念或架构模式。
 - **Person (人物)**：相关合作者、负责人或相关人士。
 - **Decision (决策)**：架构选型、设计决策或排查决议。
+- **Synthesis (综合)**：针对复杂问题、多维度主题或研究方向生成的深度综合报告（派生知识）。
 
 ### 关系类型 (Typed Relationships)
 使用带有显式动作含义的双链来表示实体间的关系：
@@ -75,7 +78,9 @@
 
 ---
 
-## 4. 工作流说明
+## ⚙️ 工作流说明
+
+为了实现知识库的高效自愈与整洁，我们将具体的操作步骤与指令解耦为独立的 Agent 技能（Skills），并在日常交互中通过指定的前缀命令进行调用。
 
 ### 暂存层 (sources/) 防碎片化规范
 为防止 `sources/` 目录随着时间推移堆积大量零碎文件，导致知识检索困难，系统在生成源文件时必须严格遵守以下三种防碎片化策略：
@@ -83,48 +88,30 @@
 2. **微小更新直接“直达 Wiki (Bypass)”**：对于几句话的微小纠错或单一知识点补充，彻底跳过 `sources/` 层的暂存，直接在 `wiki/` 层修改对应词条，保持系统整洁。
 3. **大型信源独立建档**：只有通过 Web Clipper 剪藏的长篇外部文章、长篇 PDF，或长达数小时的重大 Debug 完整归档，才允许在 `sources/` 下独占建立一个独立的文件。
 
-### Ingest (录入新知识流程)
-当 `sources/` 中加入新文件，或会话结束时：
-1. **脱敏敏感数据**：自动过滤并清除 API key、私有密码以及敏感隐私数据。
-2. **识别实体**：扫描并识别出文中的核心实体。
-3. **合并或创建**：
-   - 如果该实体在 `wiki/` 中已存在页面，将新知识整合并追加到已有页面中，增补 `sources:` 引用链，更新 `last_confirmed` 日期，并重新评估置信度。
-   - 如果是全新实体，在 `wiki/` 中新建页面并套用标准模版。
-4. **链接溯源**：在 Wiki 页面中务必保留指向 `sources/` 对应原始文件的双链。
-5. **更新索引**：若创建了新页面，将其添加至 `index.md`。
+### Ingest (智能录入 - /ingest)
+- **触发命令**：`/ingest <file_path>` 或 *“帮我录入 sources/文件名”*
+- **核心政策**：自动处理 `sources/` 下的原始文件，提炼实体并写入 `wiki/`，同时**必须自动将处理后的原文件移入 `sources/processed/` 已处理目录**。
+- **具体执行步骤**：参见 [ingest/SKILL.md](.agents/skills/ingest/SKILL.md)。
 
-### Query (检索流程)
-当进行知识检索时：
-1. 优先搜索 `wiki/` 目录下的结构化词条，如果信息不足，再在 `sources/` 中查找原始细节。
-2. 结合词条的双链关联关系，做上下游实体的关联推荐。
+### Query (知识检索)
+- **核心策略**：优先搜索 `wiki/` 目录下的结构化词条，如果信息不足，再在 `sources/` 中查找原始细节。结合词条的双链关联关系，做上下游实体的关联推荐。
 
-### Lint (自愈维护流程)
-定期对知识库健康度进行扫描（或在触发自愈维护指令时）：
-1. 找出没有任何链接指向的孤立 Wiki 页面。
-2. 修复破损/失效的双链链接。
-3. **清理孤立附件 (Orphaned Attachments)**：扫描 `sources/attachments/` 目录，若存在未被本知识库内任何 Markdown 文件所引用的孤立图片，将其物理删除以节约存储。
-4. 识别出语义矛盾的事实，并根据数据新鲜度与置信度给出冲突解决建议。
-5. **执行时效衰减**：检查所有 `confidence < 1.0` 词条的 `last_confirmed` 日期。若超过 6 个月未更新，计算待扣减的置信度，并自动更新文件属性（无须用户介入）。
-6. **归档操作**：归档已经严重衰减（如置信度低于 0.2）或过期的事实。**归档操作必须在用户显式 Review 并 Approve 后方可执行，严禁 Agent 在后台静默归档。**
+### Lint (日常自愈维护 - /lint)
+- **触发命令**：`/lint` 
+- **核心政策**：定期对知识库健康度进行扫描，修复断链、清理孤立附件。执行**时效衰减机制**（对 last_confirmed 超过半年的词条降低置信度，但归档操作需呈报）。
+- **具体执行步骤**：参见 [lint/SKILL.md](.agents/skills/lint/SKILL.md)。
 
-### Crystallize (结晶流程)
-当完成一段复杂的研究或排错工作，或在日常交互中获取了新信息时：
-1. **经验提炼**：将完整的思考过程、发现的问题、修改的文件和得到的经验教训总结为一篇高度提炼的 digest 报告，存入 `wiki/`。
-2. **事实互联**：提炼出通用事实，并与对应的项目、库等实体进行互联。
-3. **跨 Vault 存算分离准则 (Cross-Vault Read-Only)**：如果知识来源是用户的其他 Obsidian Vault（如 `个人笔记`），Agent **严禁将其 Markdown 文本拷贝至 `sources/`**。必须直接使用 `view_file` 跨目录读取原文进行提炼，并在最终的 Wiki 词条中使用 `obsidian://` 协议的 URI 链接进行溯源。严禁对外部 Vault 进行任何写入、删除或移动操作。
-4. **按需深拷贝插图 (On-Demand Deep-Copy)**：虽然不拷贝文本，但在跨 Vault 提炼以及从本地 `sources/` 结晶时，Agent 必须执行严格的“按需拉取”策略。只有当原始信源中的某张插图（如 UI 界面、核心架构图）被 Agent 判断为具有高度说明价值，且**真正需要被嵌入到结晶的 `wiki/` 词条中**时，才允许将其跨库深拷贝至 `sources/attachments/` 目录下。任何未被结晶词条征用的冗余图片，必须留在原 Vault，严禁拷贝过来污染本地图片池。
-5. **个人画像沉淀 (User Profiling)**：Agent 必须时刻留心对话过程中暴露的任何关于用户的细小知识点（如个人开发习惯、硬件配置、生活情况、技术偏好等）。一旦捕捉到此类信息，无论用户是否显式下令，都应主动以增量（Incremental）的方式将其更新到 `[[wiki/User]]`（我的个人档案）词条中，持续构建高度个性化的私人助手记忆。
+### Crystallize (会话结晶 - /crystallize)
+- **触发命令**：`/crystallize` 
+- **核心政策**：当完成复杂研究或排错后，提炼经验并存入 `wiki/`（可生成 `type: synthesis` 的深度报告或更新对应词条）。在此过程中，必须严格遵守**跨 Vault 存算分离准则 (Cross-Vault Read-Only)** 以及 **按需深拷贝插图 (On-Demand Deep-Copy)**，并自动对 **个人画像进行沉淀 (User Profiling)**。
+- **具体执行步骤**：参见 [crystallize/SKILL.md](.agents/skills/crystallize/SKILL.md)。
 
-### Scale (规模化重构流程)
-当 `wiki/` 目录下的词条数量增加或单文件体积过大时，Agent 可通过指令触发全局重构（Refactor），采取以下分类治理策略：
-1. **合并归类 (Merge)**：将多个主题重合的碎片化小文件提炼合并为一个高密度的结构化词条，并清理旧文件。
-2. **裂变拆分 (Split)**：当单一词条内容过载、主题不再聚焦时，将其垂直拆分为多个子词条（如分离理论与实操）。
-3. **动态编译 MOC (内容地图)**：当某一垂直领域的关联词条数量达到 5-10 篇时，Agent 自动编译或更新该领域的 MOC 页面（如 `[[wiki/Math-MOC]]`），在扁平的文件结构之上构建逻辑多叉树目录。
-4. **自动修复双链 (Auto-fixing Links)**：在任何合并、拆分或重命名操作中，Agent 必须全局遍历并更新所有旧的双向链接引用，确保不产生死链。
-5. **安全准则**：重构涉及核心资产的大规模结构变动，Agent 必须先出具详细的实施方案（Implementation Plan），在获取用户的显式 Review 和 Approve 后方可批量修改。
-6. **保持物理扁平**：所有词条统一存放在 `wiki/` 一级文件夹内，靠 MOC 和双链建立多维度归类，避免深层文件夹嵌套导致的路径破损。
+### Scale (规模化重构 - /scale)
+- **触发命令**：`/scale` 
+- **核心政策**：当词条数量过多时，执行 Split/Merge 重构或动态更新 MOC。涉及大规模变动时，必须先出具 Implementation Plan 供用户 Review 和 Approve。词条必须保持**物理扁平**（统一存放在 `wiki/` 一级文件夹内）。
+- **具体执行步骤**：参见 [scale/SKILL.md](.agents/skills/scale/SKILL.md)。
 
-## 5. 知识库系统边界与防污染准则 (Strict Boundaries & Anti-Hallucination)
+## 🛡️ 知识库系统边界与防污染准则 (Strict Boundaries & Anti-Hallucination)
 
 在知识库的架构演进与结晶过程中，Agent 必须绝对遵守以下护栏原则，严禁越界：
 
@@ -134,10 +121,15 @@
 2. **系统元文件不可污染 (Meta-Files Isolation)**：
    - 系统级的入口文件（如 `README.md`）具有特殊的占位与锚点意义。它仅用于定义文件夹作用、全局元数据结构（Metadata Template）。
    - 严禁将业务内容文件（如讨论架构思想的 `LLM-Wiki-v2.md`）强行合并到 `README.md` 中。保持“规则定义（Schema）”与“内容沉淀（Content）”的物理隔离。
+3. **命令行与脚本限制 (Command-Line & Script Restrictions)**：
+   - **允许使用只读命令**：在定位新增/修改文件或获取其修改时间时，允许且仅允许使用无副作用的只读命令（例如 `find`、`stat`），以便高效准确地查询文件元数据（如 `mtime`）。
+   - **严禁使用副作用命令及脚本**：严禁调用任何具有文件修改、删除或写入副作用的终端命令（如 `rm`、`sed`、`awk`、`tee` 等），并且绝不能编写或运行 Python、Bash 等脚本来进行自动化处理。
+   - **原生 API 优先**：任何关于个人知识库内文件内容的读取、编辑或更新，必须严格通过 Antigravity 的原生 API（例如 `replace_file_content`、`write_to_file` 等）安全完成。
+
 
 ---
 
-## 6. 吞吐量与认知边界 (Cognitive Limits & Batching)
+## 🧠 吞吐量与认知边界 (Cognitive Limits & Batching)
 
 为了避免 Agent 在处理大量原始文献时发生上下文过载（Context Overflow）、幻觉增加以及“贪多嚼不烂”导致的提炼质量下降，系统在进行 Ingest 和 Scale 归档时必须严格遵守分批处理上限：
 
@@ -147,7 +139,7 @@
 
 ---
 
-## 附录 A：知识库的两个 Cronjob
+## ⏰ 附录 A：知识库的两个 Cronjob
 
 本附录用于安全存放系统级的自动化脚本代码。将它们写在这里，能够确保随着 Git 白名单机制一同备份至云端，在物理设备损坏时快速重建整个生命周期维护流水线。
 
@@ -157,12 +149,12 @@
 直接在 macOS 终端复制并执行以下单行命令（使用了 Bash 隔离防止 Shell 转义冲突）：
 
 ```bash
-bash -c '(crontab -l 2>/dev/null; echo "0 12 * * 0 cd \"$HOME/Library/Mobile Documents/iCloud~md~obsidian/Documents/个人知识库\" && git add GEMINI.md SOUL.md wiki/README.md sources/README.md .gitignore && git commit -m \"chore: weekly auto-sync\" && git push -q") | crontab -'
+bash -c '(crontab -l 2>/dev/null; echo "0 12 * * 0 cd \"$HOME/Library/Mobile Documents/iCloud~md~obsidian/Documents/个人知识库\" && git add GEMINI.md SOUL.md wiki/README.md sources/README.md .agents/ .gitignore && git commit -m \"chore: weekly auto-sync\" && git push -q") | crontab -'
 ```
 
 ### A.2 Antigravity 的 Scheduled Task
 
-依赖 Antigravity Manager 的大模型调度能力，负责执行高度智能化的 Lint（孤立附件清理、时效衰减定级）与 Scale（词条合并、知识抽取）任务。
+依赖 Antigravity Manager 的大模型调度能力，负责执行高度智能化的 Lint（日常体检、时效衰减）与 Scale（词条合并、MOC 导航）任务。
 
 **部署方式**：
 通过 `/schedule` 唤醒 Agent，并下达对应的 Prompt；或者在 Antigravity 界面侧边栏的 Scheduled Tasks 模块里直接添加。
@@ -170,20 +162,19 @@ bash -c '(crontab -l 2>/dev/null; echo "0 12 * * 0 cd \"$HOME/Library/Mobile Doc
 - **Cron 表达式**: `0 0 * * *` (每日凌晨 0:00)
 - **Prompt**: 
   ```text
-  请前往 /Users/cuiaoxiang/Library/Mobile Documents/iCloud~md~obsidian/Documents/个人知识库 目录，执行日常自愈维护。
+  请前往 /Users/cuiaoxiang/Library/Mobile Documents/iCloud~md~obsidian/Documents/个人知识库 下的“LLM 学习”和“码农的自我修养”这两个目录，执行日常自愈维护。
 
   ⚠️【重要：会话命名规则】
-  启动后，请立即将当前会话的标题命名为 `🌙YYYY/MM/DD`（请根据当前执行任务的系统时间动态替换，例如：若今天是 2026 年 6 月 12 日，则标题为 `🌙2026/06/12`）。
+  启动后，请立即将当前会话的标题命名为 `🌙YYYY/MM/DD`（请根据当前实际执行任务的时间动态替换，例如：`🌙2026/06/12`）。
 
   ⚠️【执行限制】
-  【全流程严禁调用系统终端命令行或运行 Python 脚本】，请纯粹利用你原生的读取与编辑 API（如 list_dir, view_file, grep_search, replace_file_content, write_to_file 等）完成以下工作：
+  【严禁运行 Python 脚本或任何具有文件写入/删除/修改副作用的终端命令（如 rm, sed, awk 等）】。仅允许调用只读元数据查询命令（如 stat, find 等）。对于本库内容的增删改，必须纯粹利用原生的编辑 API，通过依次调度自定义技能来完成以下工作：
 
-  1. **死链检查与修复**：遍历个人知识库词条，检查是否有死链，如有则使用 replace_file_content 直接修复。
-  2. **置信度时效衰减**：根据 GEMINI.md 规范，检查词条的 confidence 属性，将 last_confirmed 超过半年的词条进行置信度衰减扣减（无须用户介入，但若涉及归档操作需呈报）。
-  3. **外部 Vault 知识同步**：严格且仅限扫描外部 Vault 的以下两个白名单目录：
+  1. **本库体检 (Lint)**：运行 `/lint` 技能对本库进行自愈检查，完成死链修复、孤立附件清理和置信度时效衰减。
+  2. **外部 Vault 知识同步**：严格且仅限扫描外部 Vault 的以下两个白名单目录：
      - /Users/cuiaoxiang/Library/Mobile Documents/iCloud~md~obsidian/Documents/个人笔记/LLM 学习
      - /Users/cuiaoxiang/Library/Mobile Documents/iCloud~md~obsidian/Documents/个人笔记/码农的自我修养
-     读取本库根目录下的 `.last_sync_time` 隐藏文件（记录上次自愈维护成功的时间戳）。若不存在，则默认扫描最近 24 小时内有更新的内容；若存在，则扫描自上次同步时间（该时间戳）以来有更新或新增的内容（遵循跨 Vault 只读准则，严禁物理拷贝文本，采用 obsidian:// 协议溯源），提取新知识并同步更新到本库的 Wiki 层。
-  4. **MOC 架构重构 (Scale)**：若某一垂直领域的关联词条数量达到 5-10 篇，自动编译或更新该领域的 MOC 页面，并自动修复所有双链引用。
-  5. **生成诊断报告与更新状态**：自愈维护完成后，自动生成一份本次自愈维护的诊断报告（包含置信度衰减统计、死链修复清单、外部知识库同步提取的词条与摘要，以及本次新增 MOC 规划），保存为本地 markdown 格式（作为 artifact 存储）并展示给用户。同时，将本次成功运行的当前时间戳（格式为 YYYY-MM-DD HH:mm:ss 或 Unix 时间戳）写入本库根目录下的 `.last_sync_time` 文件中，以重置增量同步起点。
+     读取本库根目录下的 `.last_sync_time` 隐藏文件（记录上次自愈维护成功的时间戳）。若不存在，则默认扫描最近 24 小时内有更新的内容；若存在，则扫描自该时间戳以来有更新或新增的内容（遵循跨 Vault 只读准则，采用 obsidian:// 协议溯源），提取新知识并同步更新到本库的 Wiki 层。
+  3. **架构重构 (Scale)**：运行 `/scale` 技能，若某一垂直领域的关联词条数量达到 5-10 篇，自动编译或更新该领域的 MOC 页面，并自动修复所有双链引用。
+  4. **生成诊断报告**：自愈维护完成后，自动生成一份本次自愈维护的诊断报告（包含置信度衰减统计、死链修复清单、外部知识库同步提取的词条与摘要，以及本次新增 MOC 规划）。**务必使用 write_to_file 将该报告覆写保存至当前知识库根目录下，强制命名为 `.最近一次自愈报告.md`**，同时，将本次成功运行的当前时间戳（格式为 YYYY-MM-DD HH:mm:ss 或 Unix 时间戳）写入本库根目录下的 `.last_sync_time` 文件中，以重置增量同步起点。
   ```

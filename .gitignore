@@ -4,4 +4,8 @@
 !GEMINI.md
 !SOUL.md
 !wiki/README.md
+!.agents/
+!.agents/**
+.DS_Store
+**/.DS_Store
 !sources/README.md
