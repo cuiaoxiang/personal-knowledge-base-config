@@ -17,7 +17,7 @@ description: Compile raw files in sources/ into structured wiki pages, perform d
 - 校验目标文件是否存在于 `sources/`（新暂存信源）或 `sources/processed/`（历史滚动日志）下。
 - 读取文件内容，确认总行数不超过 1000 行。若超出，主动向用户提议分批处理。
 - **滚动日志增量提取逻辑 (Incremental Ingest for Rolling Logs)**：
-  - 若录入目标为已处于 `sources/processed/` 目录下的滚动日志文件（如 `[Chat]` 类的长期研究日志）：
+  - 若录入目标为已处于 `sources/processed/` 目录下的滚动日志文件（如 `💬` 类的长期研究日志）：
     1. 读取本库根目录下的时间戳记录文件 `.last_sync_time`。
     2. 解析并对比该滚动日志的 YAML 头部中记录的 `last_modified_timestamp`。
     3. 若有更新，**仅读取并处理日期晚于 `.last_sync_time` 的 `## YYYY-MM-DD 更新` 章节**。跳过历史已录入的内容，以极大地节省 Token 并防止重复录入。

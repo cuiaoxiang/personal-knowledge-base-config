@@ -7,7 +7,7 @@
 - 📊 原始系统日志 (Raw Logs)
 
 ### 录入与处理流程
-1. 将文件保存到此目录下（暂存为 Working Memory），文件名建议带有明确的主题或时间戳（例如 `[Clippings] my-research.md`）。
+1. 将文件保存到此目录下（暂存为 Working Memory），文件名建议带有明确的主题或时间戳（例如 `✂️ my-research.md` 或 `💬 my-chat.md`）。
 2. 让 AI Agent 扫描并编译此文件：运行 `/ingest` 指令（或直接输入：*“帮我录入 sources/文件名”*）。
 3. Agent 将自动：
    - 过滤敏感信息（如 API Key 等密码）。

@@ -20,7 +20,7 @@ type: Library | Concept | Person | Project | Decision | Synthesis
 confidence: 0.85     # 置信度 (0.0 到 1.0)；年份/定理等常识固定为 1.0；技术生态等随时间而衰减
 last_confirmed: 2026-06-09  # 最近一次核实的时间
 sources:
-  - "[[sources/processed/[Clippings] obsidian-setup.md]]"  # 链接回原始证据链
+  - "[[sources/processed/✂️ obsidian-setup.md]]"  # 链接回原始证据链
 ---
 
 # 实体名称
