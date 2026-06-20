@@ -23,9 +23,11 @@
 ```
 
 - **`sources/` (分布式信源核心)**：`sources` 不再仅仅是一个物理文件夹，而是一个**逻辑上的数据流网络**。
-  - **本地 Inbox**：作为当前知识库的本地信源池，存放 Web Clipper 剪藏、临时会话的总结 (raw data) 以及所有本地缓存的附件（如 `sources/attachments/` 下的图片）。为了分类清晰，其下常设两个子目录：
+  - **本地 Inbox**：作为当前知识库的本地信源池，存放 Web Clipper 剪藏、临时会话的总结 (raw data) 以及所有本地缓存的附件（如 `sources/attachments/` 下的图片）。为了分类清晰，其下常设四个子目录：
     - `sources/chats/`：存放所有对话总结与长期研究日志（动态增量追加，文件名必须统一添加 `💬` 前缀，YAML 属性中必须包含 `last_modified_timestamp` 以便触发增量同步）。
     - `sources/clippings/`：存放所有网页剪藏和文献（静态全量，文件名必须统一添加 `✂️` 前缀，YAML 属性中包含 `created` 日期即可）。
+    - `sources/transcripts/`：存放所有视频脚本、字幕与音频转文字记录（静态全量，文件名必须统一添加 `🎬` 前缀，YAML 属性中包含 `created` 日期即可）。
+    - `sources/papers/`：存放所有学术论文、科研文献与 PDF 导出的 Markdown 文件（静态全量，文件名必须统一添加 `📄` 前缀，YAML 属性中包含 `created` 日期即可）。
   - **分布式外部节点**：外部 Vault（如“个人笔记”）中被授权的特定文件夹被视为逻辑挂载点。Agent 严禁向本地拷贝其文本，必须采取“物理解耦、逻辑统一”的存算分离读取架构，从而避免数据冗余。
 - **`wiki/`**：包含合并提炼后的知识。其中的每个页面都对应一个具体的**实体**（项目、技术、概念、人物、决策等）。
   - **规范 1 (标题排版)**：为了保持文档整洁与自愈重构逻辑的精准，编译后的百科词条正文中的各级章节标题（`##`、`###` 等）**一律不使用数字编号前缀**（例如：必须使用 `## 核心架构`，严禁使用 `## 1. 核心架构`，但类似 `## 2026年巅峰算力` 等表示数据或年份而非章节序号的数字不在此限制内）。
@@ -90,7 +92,7 @@
 
 ### Ingest (智能录入与归档 - /ingest)
 - **触发命令**：`/ingest` 或 `/ingest <file_path>` 或 *“录入新增知识”* 或 *“帮我录入 sources/文件名”*
-- **核心政策**：自动处理 `sources/` 下的原始文件并提炼写入 `wiki/`。若指定特定文件，则直接录入该文件；若未指定，则增量扫描 `sources/chats/` 和 `sources/clippings/` 下 `mtime` 晚于 `.last_sync_time` 的变更文件。同步完成后更新 `.last_sync_time` 记录状态作为逻辑归档，原文件永久保留在原目录中。
+- **核心政策**：自动处理 `sources/` 下的原始文件并提炼写入 `wiki/`。若指定特定文件，则直接录入该文件；若未指定，则增量扫描 `sources/chats/`、`sources/clippings/`、`sources/transcripts/` 和 `sources/papers/` 下 `mtime` 晚于 `.last_sync_time` 的变更文件。同步完成后更新 `.last_sync_time` 记录状态作为逻辑归档，原文件永久保留在原目录中。
 - **具体执行步骤**：参见 [ingest/SKILL.md](.agents/skills/ingest/SKILL.md)。
 
 ### Query (知识检索)

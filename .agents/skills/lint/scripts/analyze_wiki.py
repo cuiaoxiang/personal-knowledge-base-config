@@ -2,7 +2,8 @@ import os
 import re
 from datetime import datetime
 
-base_dir = "/Users/cuiaoxiang/Library/Mobile Documents/iCloud~md~obsidian/Documents/个人知识库"
+script_dir = os.path.dirname(os.path.abspath(__file__))
+base_dir = os.path.abspath(os.path.join(script_dir, "..", "..", "..", ".."))
 wiki_dir = os.path.join(base_dir, "wiki")
 sources_dir = os.path.join(base_dir, "sources")
 attachments_dir = os.path.join(sources_dir, "attachments")
@@ -86,23 +87,25 @@ for fpath in wiki_files:
     wikilinks = re.findall(r"\[\[([^\]]+)\]\]", content)
     for link in wikilinks:
         target = link.split("|")[0].strip()
+        # Split by '#' to remove section anchors (e.g. [[NoteName#Section]] -> NoteName)
+        target_file = target.split("#")[0].strip()
         resolved = False
-        target_lower = target.lower()
+        target_lower = target_file.lower()
         
         if target_lower.startswith("wiki/"):
-            clean_target = target[5:]
+            clean_target = target_file[5:]
             if clean_target.lower() in wiki_map:
                 resolved = True
                 incoming_links[clean_target.lower()].append(fpath)
             else:
-                test_path = os.path.join(base_dir, target)
+                test_path = os.path.join(base_dir, target_file)
                 if not test_path.endswith(".md"):
                     test_path += ".md"
                 if os.path.exists(test_path):
                     resolved = True
         elif target_lower.startswith("sources/"):
-            test_path = os.path.join(base_dir, target)
-            if not test_path.endswith(".md") and not os.path.splitext(target)[1]:
+            test_path = os.path.join(base_dir, target_file)
+            if not test_path.endswith(".md") and not os.path.splitext(target_file)[1]:
                 test_path += ".md"
             if os.path.exists(test_path):
                 resolved = True
@@ -112,14 +115,14 @@ for fpath in wiki_files:
                 incoming_links[target_lower].append(fpath)
             else:
                 # Check under wiki_dir
-                test_path = os.path.join(wiki_dir, target)
+                test_path = os.path.join(wiki_dir, target_file)
                 if not test_path.endswith(".md"):
                     test_path += ".md"
                 if os.path.exists(test_path):
                     resolved = True
                 else:
                     # Check under base_dir
-                    test_path2 = os.path.join(base_dir, target)
+                    test_path2 = os.path.join(base_dir, target_file)
                     if not test_path2.endswith(".md"):
                         test_path2 += ".md"
                     if os.path.exists(test_path2):
@@ -141,9 +144,10 @@ if os.path.exists(index_path):
     index_wikilinks = re.findall(r"\[\[([^\]]+)\]\]", index_content)
     for link in index_wikilinks:
         target = link.split("|")[0].strip()
-        target_lower = target.lower()
+        target_file = target.split("#")[0].strip()
+        target_lower = target_file.lower()
         if target_lower.startswith("wiki/"):
-            clean_target = target[5:]
+            clean_target = target_file[5:]
             if clean_target.lower() in wiki_map:
                 incoming_links[clean_target.lower()].append(index_path)
         else:

@@ -13,23 +13,31 @@ description: Summarize active conversations and complex debug sessions into stru
 
 ## 执行步骤与规范
 
-### 1. 提炼会话或调试日志
-- 梳理当前的交互历史，提取出：
-  - 核心问题与痛点背景。
-  - 尝试过的方案与最终采纳的有效方案（包含修改的文件、关键命令）。
-  - 底层原理解析与长效规程经验。
+### 1. 归档原始会话信源 (第一阶段)
+- **绝对信源依赖**：严禁直接绕过暂存区修改 Wiki。必须先在本库的 `sources/chats/` 目录下归档此次会话的原始事实：
+  - **新会话**：创建名为 `💬 [主题描述].md` 的新文件。
+  - **持续主题**：以 `## YYYY-MM-DD 更新` 的形式追加到已有的滚动日志末尾（如 `💬 Antigravity-研究日志.md`）。
+  - **YAML 元数据**：必须包含以下属性：
+    ```yaml
+    ---
+    type: chat
+    created: YYYY-MM-DD
+    last_modified_timestamp: [UNIX时间戳]
+    ---
+    ```
+  - **内容梳理**：高保真地整理对谈历史，提取出核心问题、尝试过程、最终采纳的有效方案、底层原理解析及关键命令。
 
-### 2. 生成或更新 Wiki 词条与 Synthesis 报告
+### 2. 生成或更新 Wiki 词条与 Synthesis 报告 (第二阶段)
 - **Concept 词条**：若成果属于单一实体或架构模式，合并/更新至对应的 `wiki/` 百科页面下。
 - **Synthesis 报告 (综合研究与深度报告)**：若成果是跨领域的复杂分析或深度调研，则在 `wiki/` 目录下生成一个独立的 Markdown 文件。
-  - YAML 头设置：
+  - **双链关联**：必须在 YAML 头部的 `sources` 属性中添加对步骤 1 中创建/更新的 `sources/chats/💬 xxx.md` 文件的双链引用：
     ```yaml
     ---
     type: Synthesis
     confidence: 0.95
     last_confirmed: YYYY-MM-DD
     sources:
-      - "[[sources/processed/相关的原始记录或会话.md]]"
+      - "[[sources/chats/💬 刚才创建的会话文件名.md]]"
     ---
     ```
   - 将生成的 Synthesis 报告链接挂载到 `index.md` 中的 `### 🧪 综合研究与深度报告 (Syntheses)` 章节。
