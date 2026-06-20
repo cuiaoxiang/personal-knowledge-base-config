@@ -126,8 +126,7 @@ for fpath in wiki_files:
                         resolved = True
         
         if not resolved:
-            # Skip template variables inside README.md
-            if os.path.basename(fpath) == "README.md" and target in ["C++23", "CUIAOXIANG"]:
+            if os.path.basename(fpath) == "README.md" and (target in ["C++23", "CUIAOXIANG"] or "obsidian-setup.md" in target):
                 continue
             dead_links.append({
                 "source_file": fpath,
