@@ -85,33 +85,33 @@
 为了实现知识库的高效自愈与整洁，我们将具体的操作步骤与指令解耦为独立的 Agent 技能（Skills），并在日常交互中通过指定的前缀命令进行调用。
 
 ### 暂存层 (sources/) 防碎片化规范
-为防止 `sources/` 目录随着时间推移堆积大量零碎文件，导致知识检索困难，系统在生成源文件时必须严格遵守以下三种防碎片化策略：
-1. **采用“主题滚动日志 (Rolling Log)”机制**：对于持续性、同一主题的长期探究（如架构设计、系统调试），不新建文件。新讨论的内容以 `## YYYY-MM-DD 更新` 的形式追加（Append）到现有的相关滚动日志末尾。
-2. **微小更新直接“直达 Wiki (Bypass)”**：对于几句话的微小纠错或单一知识点补充，彻底跳过 `sources/` 层的暂存，直接在 `wiki/` 层修改对应词条，保持系统整洁。
-3. **大型信源独立建档**：只有通过 Web Clipper 剪藏的长篇外部文章、长篇 PDF，或长达数小时的重大 Debug 完整归档，才允许在 `sources/` 下独占建立一个独立的文件。
+为防止 `sources/` 目录随着时间推移堆积大量零碎文件，系统在生成源文件时必须遵守以下三种防碎片化策略：
+1. **采用“主题滚动日志 (Rolling Log)”机制**：同一主题的长期探究以 `## YYYY-MM-DD 更新` 追加到现有滚动日志末尾，不新建文件。
+2. **微小更新直接“直达 Wiki (Bypass)”**：微小纠错或单一知识点补充直接修改 `wiki/` 词条，跳过 `sources/` 暂存。
+3. **大型信源独立建档**：仅 Web Clipper 剪藏、长篇 PDF 或重大 Debug 完整归档等长篇/独立资料在 `sources/` 下单独建档。
 
 ### Ingest (智能录入与归档 - /ingest)
-- **触发命令**：`/ingest` 或 `/ingest <file_path>` 或 *“录入新增知识”* 或 *“帮我录入 sources/文件名”*
-- **核心政策**：自动处理 `sources/` 下的原始文件并提炼写入 `wiki/`。若指定特定文件，则直接录入该文件；若未指定，则增量扫描 `sources/chats/`、`sources/clippings/`、`sources/transcripts/` 和 `sources/papers/` 下 `mtime` 晚于 `.last_sync_time` 的变更文件。同步完成后更新 `.last_sync_time` 记录状态作为逻辑归档，原文件永久保留在原目录中。
-- **具体执行步骤**：参见 [ingest/SKILL.md](.agents/skills/ingest/SKILL.md)。
+- **触发命令**：`/ingest` 或 `/ingest <file_path>`（传入 `.md` 或 `.pdf` 文件）或 *“录入新增知识”* 或 *“帮我录入 sources/文件名”*
+- **核心政策**：自动处理 `sources/` 下的原始文件并提炼写入 `wiki/`。
+- **具体执行规范**：参见 [ingest/SKILL.md](file:///.agents/skills/ingest/SKILL.md)。
 
 ### Query (知识检索)
-- **核心策略**：优先搜索 `wiki/` 目录下的结构化词条，如果信息不足，再在 `sources/` 中查找原始细节。结合词条的双链关联关系，做上下游实体的关联推荐。
+- **核心策略**：优先搜索 `wiki/` 百科词条，信息不足时再反查 `sources/` 原始细节，并利用双链做上下游实体的关联推荐。
 
 ### Lint (日常自愈维护 - /lint)
 - **触发命令**：`/lint` 
-- **核心政策**：定期对知识库健康度进行扫描，修复断链、清理孤立附件。执行**时效衰减机制**（对 last_confirmed 超过半年的词条降低置信度，但归档操作需呈报）。
-- **具体执行步骤**：参见 [lint/SKILL.md](.agents/skills/lint/SKILL.md)。
+- **核心政策**：定期对知识库健康度进行扫描，修复断链、清理孤立附件，并执行时效衰减机制。
+- **具体执行规范**：参见 [lint/SKILL.md](file:///.agents/skills/lint/SKILL.md)。
 
 ### Crystallize (会话结晶 - /crystallize)
 - **触发命令**：`/crystallize` 
-- **核心政策**：当完成复杂研究或排错后，提炼经验并存入 `wiki/`（可生成 `type: synthesis` 的深度报告或更新对应词条）。在此过程中，必须严格遵守**跨 Vault 存算分离准则 (Cross-Vault Read-Only)** 以及 **按需深拷贝插图 (On-Demand Deep-Copy)**，并自动对 **个人画像进行沉淀 (User Profiling)**。
-- **具体执行步骤**：参见 [crystallize/SKILL.md](.agents/skills/crystallize/SKILL.md)。
+- **核心政策**：在复杂研究或排错后，提炼经验并作为 Concept 词条或 Synthesis 报告存入 `wiki/`，同时更新用户画像。
+- **具体执行规范**：参见 [crystallize/SKILL.md](file:///.agents/skills/crystallize/SKILL.md)。
 
 ### Scale (规模化重构 - /scale)
 - **触发命令**：`/scale` 
-- **核心政策**：当词条数量过多时，执行 Split/Merge 重构或动态更新 MOC。涉及大规模变动时，必须先出具 Implementation Plan 供用户 Review 和 Approve。词条必须保持**物理扁平**（统一存放在 `wiki/` 一级文件夹内）。
-- **具体执行步骤**：参见 [scale/SKILL.md](.agents/skills/scale/SKILL.md)。
+- **核心政策**：当词条数量过多或单文件体积过大时，执行 Split/Merge 重构或动态更新 MOC。
+- **具体执行规范**：参见 [scale/SKILL.md](file:///.agents/skills/scale/SKILL.md)。
 
 ## 🛡️ 知识库系统边界与防污染准则 (Strict Boundaries & Anti-Hallucination)
 
@@ -128,6 +128,7 @@
    - **严禁使用副作用命令及脚本**：严禁调用任何具有文件修改、删除或写入副作用的终端命令（如 `rm`、`sed`、`awk`、`tee` 等），并且绝不能编写或运行 Python、Bash 等脚本来进行自动化处理。
    - **原生 API 优先**：任何关于个人知识库内文件内容的读取、编辑或更新，必须严格通过 Antigravity 的原生 API（例如 `replace_file_content`、`write_to_file` 等）安全完成。
    - **仅本地提交，严禁推送**：每当完成文件修改后，应自动执行本地 `git commit` 保存更改，但**严禁执行 `git push`**。如果是微小改动，应使用 `git commit --amend` 合并到上一次提交中，避免产生冗余的 commit 历史。推送操作必须完全保留并交给用户手动执行。
+   - **多端 HEAD 对齐前置检查**：在执行任何本地提交（`git commit` 或 `git commit --amend`）前，Agent 必须自动执行 `git fetch origin`，并利用 `git merge-base --is-ancestor origin/main HEAD` 检查本地是否包含远程的全部提交。若检测到不同步，必须先执行 `git reset --mixed origin/main` 将本地分支指针无损重置到远程 HEAD，确保新提交基于远程最新状态构建。
 
 
 ---

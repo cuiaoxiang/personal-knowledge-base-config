@@ -16,3 +16,7 @@
 
 1. **仅本地提交，严禁推送**：在交互会话中，每当完成文件修改后，应自动执行本地 `git commit` 保存更改，但**严禁执行 `git push`**。推送操作必须完全保留并交给用户手动执行。
 2. **微小改动合并提交**：对于微小的改动、微调或内容补充，不应创建新的 commit，应使用 `git commit --amend` 将更改合并到上一次提交中。
+3. **多端 HEAD 对齐前置检查**：为了确保本地 commit 的基底与远程 HEAD 对齐，Agent 在执行任何 `git commit` 或 `git commit --amend` 前，必须依次执行：
+   - `git fetch origin`
+   - `git merge-base --is-ancestor origin/main HEAD`
+   如果上一步返回非 0（即远程 HEAD 不是本地的祖先，说明本地落后或分叉），Agent 必须先执行 `git reset --mixed origin/main`，然后再进行 commit。这可无损对齐远程并保留工作区的所有修改。

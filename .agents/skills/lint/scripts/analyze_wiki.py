@@ -1,6 +1,10 @@
 import os
 import re
+import unicodedata
 from datetime import datetime
+
+def clean_str(s):
+    return unicodedata.normalize('NFC', s)
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 base_dir = os.path.abspath(os.path.join(script_dir, "..", "..", "..", ".."))
@@ -40,7 +44,7 @@ wiki_map = {}
 for fpath in wiki_files:
     bname = os.path.basename(fpath)
     name_without_ext = os.path.splitext(bname)[0]
-    wiki_map[name_without_ext.lower()] = fpath
+    wiki_map[clean_str(name_without_ext).lower()] = fpath
 
 # Track links
 dead_links = []
@@ -86,9 +90,9 @@ for fpath in wiki_files:
     # Find all Wikilinks
     wikilinks = re.findall(r"\[\[([^\]]+)\]\]", content)
     for link in wikilinks:
-        target = link.split("|")[0].strip()
+        target = clean_str(link.split("|")[0].strip())
         # Split by '#' to remove section anchors (e.g. [[NoteName#Section]] -> NoteName)
-        target_file = target.split("#")[0].strip()
+        target_file = clean_str(target.split("#")[0].strip())
         resolved = False
         target_lower = target_file.lower()
         
@@ -108,6 +112,14 @@ for fpath in wiki_files:
             if not test_path.endswith(".md") and not os.path.splitext(target_file)[1]:
                 test_path += ".md"
             if os.path.exists(test_path):
+                resolved = True
+        elif target_lower.startswith("file:///"):
+            from urllib.parse import unquote
+            clean_path = unquote(target_file[8:])
+            if os.path.exists(clean_path):
+                resolved = True
+        elif target_file.startswith("/"):
+            if os.path.exists(target_file):
                 resolved = True
         else:
             if target_lower in wiki_map:
@@ -143,8 +155,8 @@ if os.path.exists(index_path):
         index_content = f.read()
     index_wikilinks = re.findall(r"\[\[([^\]]+)\]\]", index_content)
     for link in index_wikilinks:
-        target = link.split("|")[0].strip()
-        target_file = target.split("#")[0].strip()
+        target = clean_str(link.split("|")[0].strip())
+        target_file = clean_str(target.split("#")[0].strip())
         target_lower = target_file.lower()
         if target_lower.startswith("wiki/"):
             clean_target = target_file[5:]
