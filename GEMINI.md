@@ -124,9 +124,9 @@
    - 系统级的入口文件（如 `README.md`）具有特殊的占位与锚点意义。它仅用于定义文件夹作用、全局元数据结构（Metadata Template）。
    - 严禁将业务内容文件（如讨论架构思想的 `LLM-Wiki-v2.md`）强行合并到 `README.md` 中。保持“规则定义（Schema）”与“内容沉淀（Content）”的物理隔离。
 3. **命令行与脚本限制 (Command-Line & Script Restrictions)**：
-   - **允许使用只读命令**：在定位新增/修改文件或获取其修改时间时，允许且仅允许使用无副作用的只读命令（例如 `find`、`stat`），以便高效准确地查询文件元数据（如 `mtime`）。
-   - **严禁使用副作用命令及脚本**：严禁调用任何具有文件修改、删除或写入副作用的终端命令（如 `rm`、`sed`、`awk`、`tee` 等），并且绝不能编写或运行 Python、Bash 等脚本来进行自动化处理。
-   - **原生 API 优先**：任何关于个人知识库内文件内容的读取、编辑或更新，必须严格通过 Antigravity 的原生 API（例如 `replace_file_content`、`write_to_file` 等）安全完成。
+   - **允许使用只读命令**：在定位新增/修改文件或获取其修改时间时，允许使用无副作用的只读命令（例如 `find`、`stat`），以便高效准确地查询文件元数据（如 `mtime`）。
+   - **副作用命令与脚本授权执行**：对于具有文件修改、删除或写入副作用的终端命令（如 `rm`、`sed`、`awk`、`tee` 等）或 Python、Bash 等自动化脚本，必须在提请用户 Review 并在命令行获得 Approve 授权后方可执行。
+   - **原生 API 优先**：任何关于个人知识库内文件内容的读取、编辑或更新，应优先通过 Antigravity 的原生 API（例如 `replace_file_content`、`write_to_file` 等）安全完成。
    - **仅本地提交，严禁推送**：每当完成文件修改后，应自动执行本地 `git commit` 保存更改，但**严禁执行 `git push`**。如果是微小改动，应使用 `git commit --amend` 合并到上一次提交中，避免产生冗余的 commit 历史。推送操作必须完全保留并交给用户手动执行。
    - **多端 HEAD 对齐前置检查**：在执行任何本地提交（`git commit` 或 `git commit --amend`）前，Agent 必须自动执行 `git fetch origin`，并利用 `git merge-base --is-ancestor origin/main HEAD` 检查本地是否包含远程的全部提交。若检测到不同步，必须先执行 `git reset --mixed origin/main` 将本地分支指针无损重置到远程 HEAD，确保新提交基于远程最新状态构建。
 
