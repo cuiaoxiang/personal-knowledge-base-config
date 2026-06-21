@@ -16,7 +16,7 @@
 ## 📂 Git 与版本控制准则
 
 1. **仅本地提交，严禁推送**：在交互会话中，每当完成文件修改后，应自动执行本地 `git commit` 保存更改，但**严禁执行 `git push`**。推送操作必须完全保留并交给用户手动执行。
-2. **微小改动合并提交**：对于微小的改动、微调或内容补充，不应创建新的 commit，应使用 `git commit --amend` 将更改合并到上一次提交中。**但若上一次提交已经推送到远程仓库（即本地 HEAD 已经与远程 `origin/main` 对齐），则严禁执行 amend 改写历史，必须创建新的普通 commit**。
+2. **微小改动合并提交**：对于微小的改动、微调或内容补充，且其主题与上一次提交做的事完全一致时，应使用 `git commit --amend` 进行合并。**若新改动做的事与上一次 commit 不同（即不属于同一主题），即使上一次提交未推送，也必须创建新的普通 commit 予以拆分，严禁混为一谈。但若上一次提交已经推送到远程仓库（即本地 HEAD 已经与远程 `origin/main` 对齐），则严禁执行 amend 改写历史，必须创建新的普通 commit**。
 3. **多端 HEAD 对齐前置检查**：为了确保本地 commit 的基底与远程 HEAD 对齐，Agent 在执行任何 `git commit` 或 `git commit --amend` 前，必须依次执行：
    - `git fetch origin`
    - `git merge-base --is-ancestor origin/main HEAD`
