@@ -141,4 +141,16 @@
 2. **单次文件数量上限**：每次归档周期的源文件数量建议控制在 **2 - 4 个** 以内。
 3. **强制分批（Batching）**：当遇到包含 5 个以上文件或总行数远超 1000 行的目录归档指令时，Agent **必须主动拒绝一次性吞入**。Agent 需自行制定“分批实施方案（Batch Implementation Plan）”（例如：Batch 1 处理硬件相关，Batch 2 处理软件配置），并在每完成一个 Batch 后清理上下文，再向用户请求继续执行下一个 Batch。
 
+---
+
+## ⏰ 自动维护定时任务 (Scheduled Maintenance Task)
+
+为了实现个人知识库的自动化自愈与知识累积，Antigravity 部署了一个每日运行的定时任务：
+
+- **执行频率 (Cron)**：`0 0 * * *`（每日凌晨 0:00）
+- **核心职能与工作流**：
+  1. **本库体检 (Lint)**：运行 `/lint` 技能进行死链检查、孤立附件清理和置信度时效衰减。
+  2. **外部 Vault 知识同步**：扫描并读取外部 Vault 目录（`/Users/cuiaoxiang/Library/Mobile Documents/iCloud~md~obsidian/Documents/个人笔记/` 下的 `LLM 学习` 和 `码农的自我修养`），增量读取新内容同步至本库的 Wiki 层，遵循跨 Vault 只读准则和 `obsidian://` 协议溯源。
+  3. **架构重构 (Scale)**：运行 `/scale` 技能，若某一领域的关联词条数量达到 5-10 篇，自动编译或更新该领域的 MOC 页面。
+  4. **生成报告与重置起点**：自动生成 `.last_self_heal_report.md` 报告，并将当前运行时间戳写入 `.last_sync_time` 隐藏文件中作为增量同步起点。
 
