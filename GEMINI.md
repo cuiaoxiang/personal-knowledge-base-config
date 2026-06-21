@@ -93,7 +93,7 @@
 ### Ingest (智能录入与归档 - /ingest)
 - **触发命令**：`/ingest` 或 `/ingest <file_path>`（传入 `.md` 或 `.pdf` 文件）或 *“录入新增知识”* 或 *“帮我录入 sources/文件名”*
 - **核心政策**：自动处理 `sources/` 下的原始文件并提炼写入 `wiki/`。
-- **具体执行规范**：参见 [ingest/SKILL.md](file:///.agents/skills/ingest/SKILL.md)。
+- **具体执行规范**：参见 [ingest/SKILL.md](.agents/skills/ingest/SKILL.md)。
 
 ### Query (知识检索)
 - **核心策略**：优先搜索 `wiki/` 百科词条，信息不足时再反查 `sources/` 原始细节，并利用双链做上下游实体的关联推荐。
@@ -101,17 +101,17 @@
 ### Lint (日常自愈维护 - /lint)
 - **触发命令**：`/lint` 
 - **核心政策**：定期对知识库健康度进行扫描，修复断链、清理孤立附件，并执行时效衰减机制。
-- **具体执行规范**：参见 [lint/SKILL.md](file:///.agents/skills/lint/SKILL.md)。
+- **具体执行规范**：参见 [lint/SKILL.md](.agents/skills/lint/SKILL.md)。
 
 ### Crystallize (会话结晶 - /crystallize)
 - **触发命令**：`/crystallize` 
 - **核心政策**：在复杂研究或排错后，提炼经验并作为 Concept 词条或 Synthesis 报告存入 `wiki/`，同时更新用户画像。
-- **具体执行规范**：参见 [crystallize/SKILL.md](file:///.agents/skills/crystallize/SKILL.md)。
+- **具体执行规范**：参见 [crystallize/SKILL.md](.agents/skills/crystallize/SKILL.md)。
 
 ### Scale (规模化重构 - /scale)
 - **触发命令**：`/scale` 
 - **核心政策**：当词条数量过多或单文件体积过大时，执行 Split/Merge 重构或动态更新 MOC。
-- **具体执行规范**：参见 [scale/SKILL.md](file:///.agents/skills/scale/SKILL.md)。
+- **具体执行规范**：参见 [scale/SKILL.md](.agents/skills/scale/SKILL.md)。
 
 ## 🛡️ 知识库系统边界与防污染准则 (Strict Boundaries & Anti-Hallucination)
 
@@ -127,8 +127,7 @@
    - **允许使用只读命令**：在定位新增/修改文件或获取其修改时间时，允许使用无副作用的只读命令（例如 `find`、`stat`），以便高效准确地查询文件元数据（如 `mtime`）。
    - **副作用命令与脚本授权执行**：对于具有文件修改、删除或写入副作用的终端命令（如 `rm`、`sed`、`awk`、`tee` 等）或 Python、Bash 等自动化脚本，必须在提请用户 Review 并在命令行获得 Approve 授权后方可执行。
    - **原生 API 优先**：任何关于个人知识库内文件内容的读取、编辑或更新，应优先通过 Antigravity 的原生 API（例如 `replace_file_content`、`write_to_file` 等）安全完成。
-   - **仅本地提交，严禁推送**：每当完成文件修改后，应自动执行本地 `git commit` 保存更改，但**严禁执行 `git push`**。如果是微小改动，应使用 `git commit --amend` 合并到上一次提交中，避免产生冗余的 commit 历史。推送操作必须完全保留并交给用户手动执行。
-   - **多端 HEAD 对齐前置检查**：在执行任何本地提交（`git commit` 或 `git commit --amend`）前，Agent 必须自动执行 `git fetch origin`，并利用 `git merge-base --is-ancestor origin/main HEAD` 检查本地是否包含远程的全部提交。若检测到不同步，必须先执行 `git reset --mixed origin/main` 将本地分支指针无损重置到远程 HEAD，确保新提交基于远程最新状态构建。
+   - **Git 提交及版本控制准则**：在本地进行代码或文档修改后，应自动进行本地 commit，严禁进行本地 `git push`（必须保留给用户手动执行）。具体的 Git 合并提交（amend）及分支对齐前置检查等具体命令行执行规范，统一遵照 [AGENTS.md](.agents/AGENTS.md) 中的相关准则执行，避免配置冲突。
 
 
 ---
