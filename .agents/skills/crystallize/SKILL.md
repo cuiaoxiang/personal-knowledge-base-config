@@ -20,9 +20,10 @@ description: Summarize active conversations and complex debug sessions into stru
   - **YAML 元数据**：必须包含以下属性：
     ```yaml
     ---
-    type: chat
     created: YYYY-MM-DD
-    last_modified_timestamp: [UNIX时间戳]
+    last_modified_timestamp: YYYY-MM-DDTHH:mm:ss+08:00
+    tags:
+      - chat
     ---
     ```
   - **内容梳理**：高保真地整理对谈历史，提取出核心问题、尝试过程、最终采纳的有效方案、底层原理解析及关键命令。

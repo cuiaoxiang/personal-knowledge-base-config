@@ -18,7 +18,7 @@ description: Compile raw files in sources/ into structured wiki pages, perform d
   - **如果路径是 `.pdf` 文件**（传入路径必定在 Vault 之外，例如 `/Users/cuiaoxiang/My Drive/Readings/Thesis/paper.pdf`）：
     1. **解析并总结标题**：Agent 读取并总结该外部 PDF，获得其中文核心学术标题，格式化为 `🏛️ [论文中文标题]`。
     2. **生成同名摘要 MD 文件**：原地保留外部 PDF 不动（不复制、不移动、不重命名）。在 Vault 的 `sources/papers/` 目录下创建同名 `🏛️ [论文中文标题].md`：
-       - YAML 头中 `sources` 属性写入该外部 PDF 的 `file:///` 绝对路径（路径必须进行 URL 百分号编码，例如将空格转为 `%20`，以确保在 Obsidian Properties 中可被正常识别并点击打开。例如：`sources: - "file:///Users/cuiaoxiang/My%20Drive/Readings/Thesis/paper.pdf"`）。
+       - YAML 头中 `source` 属性写入该外部 PDF 的 `file:///` 绝对路径（路径必须进行 URL 百分号编码，例如将空格转为 `%20`，以确保在 Obsidian Properties 中可被正常识别并点击打开。例如：`source: "file:///Users/cuiaoxiang/My%20Drive/Readings/Thesis/paper.pdf"`）。必须包含 `created: YYYY-MM-DD` 和 `tags: [- paper]`。
        - 正文仅提炼写入论文的深度核心大纲、摘要与关键发现（总行数控制在 1000 行以内），不包含任何正文 PDF 超链接。
     3. **重定向指针**：将当前处理目标重新指向该新生成的 `.md` 提炼页，继续执行后续解析。
   - **如果路径是 `.md` 文件**（例如 `sources/chats/💬 Antigravity-研究日志.md`）：Agent 直接定位并读取该文件。
@@ -37,7 +37,7 @@ description: Compile raw files in sources/ into structured wiki pages, perform d
 
 ### 3. 信源正文去直链原则
 - 为了保持知识库内文档精简美观，在 Ingest 处理或生成的 `sources/` 各类 MD 信源文件（如 `sources/papers/` 中的论文摘要、`sources/transcripts/` 中的视频转录稿等）中，**正文部分一律不保留指向外部原件的超链接**（如本地 PDF 直链、YouTube 视频 URL）。
-- 所有指向外部原件的直链有且仅声明在 YAML 头部的 `sources`（或 `source`）属性中。
+- 所有指向外部原件的直链有且仅声明在 YAML 头部的 `source` 属性中。
 - 对于包含空格的外部文件路径，在 YAML 写入时必须进行 URL 百分号编码（将空格转为 `%20`），以确保在 Obsidian 的 Properties 面板中可以被正常点击打开。
 
 ### 4. 数据敏感性脱敏
