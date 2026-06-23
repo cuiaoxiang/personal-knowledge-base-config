@@ -217,3 +217,65 @@ for oa in orphaned_attachments:
 print("\n=== CONFIDENCE AGE DECAYS ===")
 for cd in confidence_decays:
     print(f"File: {cd['file']} | Old Conf: {cd['old_conf']} -> New Conf: {cd['new_conf']} (Last Confirmed: {cd['last_confirmed']}, Elapsed: {cd['days_elapsed']} days)")
+
+# 5. Scheduled Task 历史过期数据清理 (GC)
+def run_scheduled_tasks_gc():
+    import json
+    import shutil
+    
+    events_dir = "/Users/cuiaoxiang/.gemini/antigravity/sidecar_data/lint-and-scale/events"
+    if not os.path.exists(events_dir):
+        return
+        
+    current_time = datetime.now().timestamp()
+    expire_seconds = 7 * 24 * 3600  # 7 天
+    deleted_sessions = []
+    
+    for filename in os.listdir(events_dir):
+        if not filename.endswith(".json"):
+            continue
+        filepath = os.path.join(events_dir, filename)
+        try:
+            mtime = os.path.getmtime(filepath)
+            if current_time - mtime > expire_seconds:
+                with open(filepath, "r", encoding="utf-8") as f:
+                    event_data = json.load(f)
+                conv_id = event_data.get("payload", {}).get("newConversation", {}).get("conversationId")
+                if conv_id:
+                    # 本地路径定义
+                    paths_to_delete = [
+                        f"/Users/cuiaoxiang/.gemini/antigravity/brain/{conv_id}",
+                        f"/Users/cuiaoxiang/.gemini/antigravity-cli/brain/{conv_id}",
+                    ]
+                    files_to_delete = [
+                        f"/Users/cuiaoxiang/.gemini/antigravity/conversations/{conv_id}.db",
+                        f"/Users/cuiaoxiang/.gemini/antigravity/conversations/{conv_id}.db-shm",
+                        f"/Users/cuiaoxiang/.gemini/antigravity/conversations/{conv_id}.db-wal",
+                        f"/Users/cuiaoxiang/.gemini/antigravity-cli/conversations/{conv_id}.db",
+                        f"/Users/cuiaoxiang/.gemini/antigravity-cli/conversations/{conv_id}.db-shm",
+                        f"/Users/cuiaoxiang/.gemini/antigravity-cli/conversations/{conv_id}.db-wal",
+                    ]
+                    
+                    for dp in paths_to_delete:
+                        if os.path.exists(dp):
+                            shutil.rmtree(dp, ignore_errors=True)
+                    for fp in files_to_delete:
+                        if os.path.exists(fp):
+                            try:
+                                os.remove(fp)
+                            except:
+                                pass
+                                
+                    deleted_sessions.append(conv_id)
+                # 删除 json 文件本身
+                os.remove(filepath)
+        except Exception as e:
+            pass
+            
+    if deleted_sessions:
+        print("\n=== CLEANED EXPIRED SCHEDULED SESSIONS ===")
+        for cid in deleted_sessions:
+            print(f"Cleaned expired conversation: {cid}")
+
+run_scheduled_tasks_gc()
+
