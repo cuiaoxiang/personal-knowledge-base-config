@@ -125,7 +125,7 @@
    - 严禁将业务内容文件（如讨论架构思想的 `LLM-Wiki-v2.md`）强行合并到 `README.md` 中。保持“规则定义（Schema）”与“内容沉淀（Content）”的物理隔离。
 3. **命令行与脚本限制 (Command-Line & Script Restrictions)**：
    - **允许使用只读命令**：在定位新增/修改文件或获取其修改时间时，允许使用无副作用的只读命令（例如 `find`、`stat`），以便高效准确地查询文件元数据（如 `mtime`）。
-   - **副作用命令与脚本授权执行**：对于具有文件修改、删除或写入副作用的终端命令（如 `rm`、`sed`、`awk`、`tee` 等）或 Python、Bash 等自动化脚本，必须在提请用户 Review 并在命令行获得 Approve 授权后方可执行。
+   - **副作用命令与脚本授权执行**：对于具有文件修改、删除或写入副作用的终端命令（如 `rm`、`sed`、`awk`、`tee` 等）或 Python、Bash 等自动化脚本，若已加入到白名单（allowlist）中则可自动静默执行；对于白名单外的副作用命令，必须在提请用户 Review 并在命令行获得 Approve 授权后方可执行。
    - **原生 API 优先**：任何关于个人知识库内文件内容的读取、编辑或更新，应优先通过 Antigravity 的原生 API（例如 `replace_file_content`、`write_to_file` 等）安全完成。
    - **Git 提交及版本控制准则**：在本地进行代码或文档修改后，应自动进行本地 commit，严禁进行本地 `git push`（必须保留给用户手动执行）。具体的 Git 合并提交（amend）及分支对齐前置检查等具体命令行执行规范，统一遵照 [AGENTS.md](.agents/AGENTS.md) 中的相关准则执行，避免配置冲突。
 
