@@ -3,7 +3,7 @@
     "external_vaults": [
       {
         "name": "个人笔记",
-        "path": "/Users/cuiaoxiang/Library/Mobile Documents/iCloud~md~obsidian/Documents/个人笔记",
+        "path": "~/Library/Mobile Documents/iCloud~md~obsidian/Documents/个人笔记",
         "include_subfolders": [
           "LLM 学习",
           "码农的自我修养"

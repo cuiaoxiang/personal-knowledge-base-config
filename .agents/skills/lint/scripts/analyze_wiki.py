@@ -1,6 +1,8 @@
 import os
 import re
 import unicodedata
+import json
+import urllib.parse
 from datetime import datetime
 
 def clean_str(s):
@@ -14,17 +16,122 @@ attachments_dir = os.path.join(sources_dir, "attachments")
 index_path = os.path.join(base_dir, "index.md")
 current_date = datetime.now()
 
+def load_config_vaults(base_dir):
+    config_vaults = {}
+    config_path = os.path.join(base_dir, ".agents", "config.json")
+    if os.path.exists(config_path):
+        try:
+            with open(config_path, "r", encoding="utf-8") as f:
+                config_data = json.load(f)
+                vaults = config_data.get("sync_sources", {}).get("external_vaults", [])
+                for v in vaults:
+                    name = v.get("name")
+                    path = v.get("path")
+                    if name and path:
+                        config_vaults[name] = os.path.expanduser(path)
+        except Exception:
+            pass
+    return config_vaults
+
+config_vaults = load_config_vaults(base_dir)
+
 def parse_frontmatter(fm_text):
     fm = {}
-    for line in fm_text.strip().split("\n"):
+    current_key = None
+    for line in fm_text.split("\n"):
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        
+        # Check if list item
+        if stripped.startswith("-") and current_key:
+            val = stripped[1:].strip()
+            if (val.startswith('"') and val.endswith('"')) or (val.startswith("'") and val.endswith("'")):
+                val = val[1:-1]
+            if not isinstance(fm.get(current_key), list):
+                fm[current_key] = []
+            fm[current_key].append(val)
+            continue
+            
         if ":" in line:
             parts = line.split(":", 1)
             key = parts[0].strip()
             val = parts[1].strip()
-            if (val.startswith('"') and val.endswith('"')) or (val.startswith("'") and val.endswith("'")):
-                val = val[1:-1]
-            fm[key] = val
+            
+            # If inline list like [a, b]
+            if val.startswith("[") and val.endswith("]"):
+                inner = val[1:-1].strip()
+                if not inner:
+                    fm[key] = []
+                else:
+                    items = [item.strip() for item in inner.split(",")]
+                    fm[key] = [item[1:-1] if (item.startswith('"') and item.endswith('"')) or (item.startswith("'") and item.endswith("'")) else item for item in items]
+                current_key = key
+            elif not val:
+                fm[key] = []
+                current_key = key
+            else:
+                if (val.startswith('"') and val.endswith('"')) or (val.startswith("'") and val.endswith("'")):
+                    val = val[1:-1]
+                fm[key] = val
+                current_key = key
     return fm
+
+def check_file_resolved(target, base_dir, wiki_map):
+    target_clean = clean_str(target)
+    target_lower = target_clean.lower()
+    
+    if target_lower.startswith("wiki/"):
+        clean_target = target_clean[5:]
+        if clean_target.lower() in wiki_map:
+            return True
+        test_path = os.path.join(base_dir, target_clean)
+        if not test_path.endswith(".md"):
+            test_path += ".md"
+        return os.path.exists(test_path)
+    elif target_lower.startswith("sources/"):
+        test_path = os.path.join(base_dir, target_clean)
+        if not test_path.endswith(".md") and not os.path.splitext(target_clean)[1]:
+            test_path += ".md"
+        return os.path.exists(test_path)
+    elif target_lower.startswith("file:///"):
+        clean_path = urllib.parse.unquote(target_clean[8:])
+        return os.path.exists(clean_path)
+    elif target_clean.startswith("/"):
+        return os.path.exists(target_clean)
+    else:
+        if target_lower in wiki_map:
+            return True
+        test_path = os.path.join(wiki_dir, target_clean)
+        if not test_path.endswith(".md"):
+            test_path += ".md"
+        if os.path.exists(test_path):
+            return True
+        test_path2 = os.path.join(base_dir, target_clean)
+        if not test_path2.endswith(".md"):
+            test_path2 += ".md"
+        return os.path.exists(test_path2)
+
+def check_url_resolved(url, base_dir, config_vaults):
+    if url.startswith("file:///"):
+        clean_path = urllib.parse.unquote(url[8:])
+        return os.path.exists(clean_path)
+    elif url.startswith("obsidian://open"):
+        try:
+            parsed = urllib.parse.urlparse(url)
+            params = urllib.parse.parse_qs(parsed.query)
+            vname = params.get("vault", [None])[0]
+            vfile = params.get("file", [None])[0]
+            if vname and vfile:
+                vault_path = config_vaults.get(vname)
+                if vault_path:
+                    full_path = os.path.join(vault_path, urllib.parse.unquote(vfile))
+                    return os.path.exists(full_path)
+        except Exception:
+            pass
+    elif url.startswith("http://") or url.startswith("https://"):
+        return True
+    return False
 
 # 1. Scan files
 wiki_files = []
@@ -52,6 +159,8 @@ incoming_links = {name.lower(): [] for name in wiki_map.keys()}
 
 # Frontmatter and decay tracking
 confidence_decays = []
+schema_errors = []
+VALID_TYPES = {"Library", "Concept", "Person", "Project", "Decision", "Synthesis"}
 
 for fpath in wiki_files:
     with open(fpath, "r", encoding="utf-8") as f:
@@ -63,8 +172,31 @@ for fpath in wiki_files:
         fm_text = fm_match.group(1)
         try:
             fm = parse_frontmatter(fm_text)
+            
+            # --- Schema Validation ---
+            mtype = fm.get("type")
+            if not mtype:
+                schema_errors.append(f"{fpath}: Missing 'type' field in frontmatter")
+            elif mtype not in VALID_TYPES:
+                schema_errors.append(f"{fpath}: Invalid type '{mtype}' (must be one of {VALID_TYPES})")
+                
             confidence = fm.get("confidence")
+            if confidence is not None:
+                try:
+                    c_val = float(confidence)
+                    if not (0.0 <= c_val <= 1.0):
+                        schema_errors.append(f"{fpath}: Confidence value {confidence} is out of bounds (0.0 - 1.0)")
+                except ValueError:
+                    schema_errors.append(f"{fpath}: Confidence '{confidence}' is not a valid float")
+            
             last_confirmed = fm.get("last_confirmed")
+            if last_confirmed is not None:
+                try:
+                    datetime.strptime(str(last_confirmed).strip(), "%Y-%m-%d")
+                except ValueError:
+                    schema_errors.append(f"{fpath}: last_confirmed date '{last_confirmed}' is not in YYYY-MM-DD format")
+            
+            # --- Decay Checking ---
             if confidence is not None and last_confirmed is not None:
                 try:
                     conf_val = float(confidence)
@@ -82,71 +214,73 @@ for fpath in wiki_files:
                                 "last_confirmed": last_confirmed_date.strftime("%Y-%m-%d"),
                                 "days_elapsed": days_elapsed
                             })
-                except Exception as e:
+                except Exception:
                     pass
+                    
+            # --- Sources Link Check inside frontmatter ---
+            sources = fm.get("sources", [])
+            if isinstance(sources, list):
+                for src in sources:
+                    resolved = False
+                    src_clean = src.strip()
+                    # Check if wikilink or obsidian link
+                    wikilink_match = re.match(r"^\[\[([^\]]+)\]\]$", src_clean)
+                    if wikilink_match:
+                        target = wikilink_match.group(1).split("|")[0].strip()
+                        resolved = check_file_resolved(target, base_dir, wiki_map)
+                    else:
+                        mdlink_match = re.match(r"^\[([^\]]*)\]\(([^)]+)\)$", src_clean)
+                        if mdlink_match:
+                            url = mdlink_match.group(2).strip()
+                            resolved = check_url_resolved(url, base_dir, config_vaults)
+                        else:
+                            resolved = check_file_resolved(src_clean, base_dir, wiki_map) or check_url_resolved(src_clean, base_dir, config_vaults)
+                    if not resolved:
+                        dead_links.append({
+                            "source_file": fpath,
+                            "link_text": f"frontmatter.sources: {src}",
+                            "resolved_target": src
+                        })
         except Exception as e:
-            pass
+            schema_errors.append(f"{fpath}: Failed to parse YAML frontmatter: {str(e)}")
             
-    # Find all Wikilinks
+    # Find all Wikilinks in content
     wikilinks = re.findall(r"\[\[([^\]]+)\]\]", content)
     for link in wikilinks:
         target = clean_str(link.split("|")[0].strip())
-        # Split by '#' to remove section anchors (e.g. [[NoteName#Section]] -> NoteName)
         target_file = clean_str(target.split("#")[0].strip())
-        resolved = False
-        target_lower = target_file.lower()
+        resolved = check_file_resolved(target_file, base_dir, wiki_map)
         
-        if target_lower.startswith("wiki/"):
-            clean_target = target_file[5:]
-            if clean_target.lower() in wiki_map:
-                resolved = True
-                incoming_links[clean_target.lower()].append(fpath)
-            else:
-                test_path = os.path.join(base_dir, target_file)
-                if not test_path.endswith(".md"):
-                    test_path += ".md"
-                if os.path.exists(test_path):
-                    resolved = True
-        elif target_lower.startswith("sources/"):
-            test_path = os.path.join(base_dir, target_file)
-            if not test_path.endswith(".md") and not os.path.splitext(target_file)[1]:
-                test_path += ".md"
-            if os.path.exists(test_path):
-                resolved = True
-        elif target_lower.startswith("file:///"):
-            from urllib.parse import unquote
-            clean_path = unquote(target_file[8:])
-            if os.path.exists(clean_path):
-                resolved = True
-        elif target_file.startswith("/"):
-            if os.path.exists(target_file):
-                resolved = True
-        else:
-            if target_lower in wiki_map:
-                resolved = True
+        if resolved:
+            # If it's a valid wiki link, record incoming link
+            target_lower = target_file.lower()
+            if target_lower.startswith("wiki/"):
+                clean_target = target_file[5:]
+                if clean_target.lower() in incoming_links:
+                    incoming_links[clean_target.lower()].append(fpath)
+            elif target_lower in incoming_links:
                 incoming_links[target_lower].append(fpath)
-            else:
-                # Check under wiki_dir
-                test_path = os.path.join(wiki_dir, target_file)
-                if not test_path.endswith(".md"):
-                    test_path += ".md"
-                if os.path.exists(test_path):
-                    resolved = True
-                else:
-                    # Check under base_dir
-                    test_path2 = os.path.join(base_dir, target_file)
-                    if not test_path2.endswith(".md"):
-                        test_path2 += ".md"
-                    if os.path.exists(test_path2):
-                        resolved = True
-        
-        if not resolved:
+        else:
             if os.path.basename(fpath) == "README.md" and (target in ["C++23", "CUIAOXIANG"] or "obsidian-setup.md" in target):
                 continue
             dead_links.append({
                 "source_file": fpath,
                 "link_text": link,
                 "resolved_target": target
+            })
+            
+    # Find all standard Markdown links in content
+    markdown_links = re.findall(r"\[([^\]]*)\]\(([^)]+)\)", content)
+    for label, url in markdown_links:
+        # Ignore external links, check local file/// and obsidian:// links
+        if url.startswith("http://") or url.startswith("https://") or url.startswith("#"):
+            continue
+        resolved = check_url_resolved(url, base_dir, config_vaults) or check_file_resolved(url, base_dir, wiki_map)
+        if not resolved:
+            dead_links.append({
+                "source_file": fpath,
+                "link_text": f"[{label}]({url})",
+                "resolved_target": url
             })
 
 # Also parse links in index.md
@@ -218,12 +352,19 @@ print("\n=== CONFIDENCE AGE DECAYS ===")
 for cd in confidence_decays:
     print(f"File: {cd['file']} | Old Conf: {cd['old_conf']} -> New Conf: {cd['new_conf']} (Last Confirmed: {cd['last_confirmed']}, Elapsed: {cd['days_elapsed']} days)")
 
+print("\n=== SCHEMA ERRORS ===")
+for se in schema_errors:
+    print(se)
+
+
+
 # 5. Scheduled Task 历史过期数据清理 (GC)
 def run_scheduled_tasks_gc():
     import json
     import shutil
     
-    events_dir = "/Users/cuiaoxiang/.gemini/antigravity/sidecar_data/lint-and-scale/events"
+    home = os.path.expanduser("~")
+    events_dir = os.path.join(home, ".gemini", "antigravity", "sidecar_data", "lint-and-scale", "events")
     if not os.path.exists(events_dir):
         return
         
@@ -244,16 +385,16 @@ def run_scheduled_tasks_gc():
                 if conv_id:
                     # 本地路径定义
                     paths_to_delete = [
-                        f"/Users/cuiaoxiang/.gemini/antigravity/brain/{conv_id}",
-                        f"/Users/cuiaoxiang/.gemini/antigravity-cli/brain/{conv_id}",
+                        os.path.join(home, ".gemini", "antigravity", "brain", conv_id),
+                        os.path.join(home, ".gemini", "antigravity-cli", "brain", conv_id),
                     ]
                     files_to_delete = [
-                        f"/Users/cuiaoxiang/.gemini/antigravity/conversations/{conv_id}.db",
-                        f"/Users/cuiaoxiang/.gemini/antigravity/conversations/{conv_id}.db-shm",
-                        f"/Users/cuiaoxiang/.gemini/antigravity/conversations/{conv_id}.db-wal",
-                        f"/Users/cuiaoxiang/.gemini/antigravity-cli/conversations/{conv_id}.db",
-                        f"/Users/cuiaoxiang/.gemini/antigravity-cli/conversations/{conv_id}.db-shm",
-                        f"/Users/cuiaoxiang/.gemini/antigravity-cli/conversations/{conv_id}.db-wal",
+                        os.path.join(home, ".gemini", "antigravity", "conversations", f"{conv_id}.db"),
+                        os.path.join(home, ".gemini", "antigravity", "conversations", f"{conv_id}.db-shm"),
+                        os.path.join(home, ".gemini", "antigravity", "conversations", f"{conv_id}.db-wal"),
+                        os.path.join(home, ".gemini", "antigravity-cli", "conversations", f"{conv_id}.db"),
+                        os.path.join(home, ".gemini", "antigravity-cli", "conversations", f"{conv_id}.db-shm"),
+                        os.path.join(home, ".gemini", "antigravity-cli", "conversations", f"{conv_id}.db-wal"),
                     ]
                     
                     for dp in paths_to_delete:
