@@ -150,7 +150,6 @@
 - **执行频率 (Cron)**：`0 0 * * *`（每日凌晨 0:00）
 - **核心职能与工作流**：
   1. **本库体检 (Lint)**：运行 `/lint` 技能进行死链检查、孤立附件清理和置信度时效衰减。
-  2. **外部 Vault 知识同步**：扫描并读取外部 Vault 目录（`/Users/cuiaoxiang/Library/Mobile Documents/iCloud~md~obsidian/Documents/个人笔记/` 下的 `LLM 学习` 和 `码农的自我修养`），增量读取新内容同步至本库的 Wiki 层，遵循跨 Vault 只读准则和 `obsidian://` 协议溯源。
+  2. **外部 Vault 知识同步**：读取本地配置文件 `.agents/config.json` 中的 `sync_sources.external_vaults` 字段，扫描并增量读取其中配置的外部 Vault 路径与子目录内容同步至本库的 Wiki 层，遵循跨 Vault 只读准则和 `obsidian://` 协议溯源。
   3. **架构重构 (Scale)**：运行 `/scale` 技能，若某一领域的关联词条数量达到 5-10 篇，自动编译或更新该领域的 MOC 页面。
   4. **生成报告与重置起点**：自动生成 `.last_self_heal_report.md` 报告，并将当前运行时间戳写入 `.last_sync_time` 隐藏文件中作为增量同步起点。
-
