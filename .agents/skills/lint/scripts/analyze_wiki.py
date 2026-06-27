@@ -95,7 +95,7 @@ def check_file_resolved(target, base_dir, wiki_map):
             test_path += ".md"
         return os.path.exists(test_path)
     elif target_lower.startswith("file:///"):
-        clean_path = urllib.parse.unquote(target_clean[8:])
+        clean_path = urllib.parse.unquote(target_clean[7:])
         return os.path.exists(clean_path)
     elif target_clean.startswith("/"):
         return os.path.exists(target_clean)
@@ -114,7 +114,7 @@ def check_file_resolved(target, base_dir, wiki_map):
 
 def check_url_resolved(url, base_dir, config_vaults):
     if url.startswith("file:///"):
-        clean_path = urllib.parse.unquote(url[8:])
+        clean_path = urllib.parse.unquote(url[7:])
         return os.path.exists(clean_path)
     elif url.startswith("obsidian://open"):
         try:
