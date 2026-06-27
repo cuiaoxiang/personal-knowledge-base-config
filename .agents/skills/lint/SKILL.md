@@ -17,7 +17,7 @@ description: Scan the wiki for dead links, orphaned pages, orphaned attachments,
 - **交互模式（用户在线输入 `/lint`）**：为了最大化节省 Token 消耗并缩短执行耗时，Agent 应当使用 `run_command` 运行内置的本地分析脚本：
   `python3 .agents/skills/lint/scripts/analyze_wiki.py`
   此脚本将在毫秒级内完成死链、孤立文件、孤立图片及置信度衰减的全量扫描，并将结果返回给 Agent，避免了加载 60+ 文件对大模型上下文的严重污染。
-- **定时任务模式（Scheduled Task 无人值守）**：为了确保任务不会因为等待命令行运行审批（Approve）而中途卡死，Agent **在此模式下严禁使用 `run_command` 运行任何脚本或终端命令**。所有的文件匹配、时效比对与文本自愈，必须纯粹在 Agent 的大模型上下文与推理空间内，配合安全的原生只读与编辑 API（如 `list_dir`, `view_file`, `replace_file_content`, `write_to_file`）闭环完成。
+- **定时任务模式（Scheduled Task 无人值守）**：在此模式下，Agent 可以自由运行已获授权的内置分析脚本（如 `python3 .agents/skills/lint/scripts/analyze_wiki.py`）并直接调用 Native APIs 进行文件修改（如自愈修复死链、更新置信度衰减、写入报告与时间戳等）。**在此模式下，严禁抛出任何需要用户参与的交互式确认操作（如 `ask_question` 对话框，或在 `implementation_plan.md` 中配置 `RequestFeedback: true` 触发的 Proceed 按钮）**，所有自愈修改与文件写入必须在后台全自动静默完成，以实现完全无感的自愈运行。
 
 ### 1. 链接与孤立页面扫描
 - **死链检查**：遍历所有 `wiki/` 下的 Markdown 文件，提取所有 Obsidian Wikilinks（形如 `[[wiki/文件名]]` 或 `[[文件名]]`）。
