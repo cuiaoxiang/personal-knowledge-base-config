@@ -397,19 +397,30 @@ def run_scheduled_tasks_gc():
                         os.path.join(home, ".gemini", "antigravity-cli", "conversations", f"{conv_id}.db-wal"),
                     ]
                     
+                    success = True
                     for dp in paths_to_delete:
                         if os.path.exists(dp):
-                            shutil.rmtree(dp, ignore_errors=True)
+                            try:
+                                shutil.rmtree(dp)
+                            except Exception:
+                                pass
+                            if os.path.exists(dp):
+                                success = False
                     for fp in files_to_delete:
                         if os.path.exists(fp):
                             try:
                                 os.remove(fp)
-                            except:
+                            except Exception:
                                 pass
+                            if os.path.exists(fp):
+                                success = False
                                 
-                    deleted_sessions.append(conv_id)
-                # 删除 json 文件本身
-                os.remove(filepath)
+                    if success:
+                        deleted_sessions.append(conv_id)
+                        try:
+                            os.remove(filepath)
+                        except Exception:
+                            pass
         except Exception as e:
             pass
             
