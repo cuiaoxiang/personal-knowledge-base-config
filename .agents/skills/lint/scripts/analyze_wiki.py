@@ -42,7 +42,7 @@ def parse_frontmatter(fm_text):
         stripped = line.strip()
         if not stripped or stripped.startswith("#"):
             continue
-        
+
         # Check if list item
         if stripped.startswith("-") and current_key:
             val = stripped[1:].strip()
@@ -52,12 +52,12 @@ def parse_frontmatter(fm_text):
                 fm[current_key] = []
             fm[current_key].append(val)
             continue
-            
+
         if ":" in line:
             parts = line.split(":", 1)
             key = parts[0].strip()
             val = parts[1].strip()
-            
+
             # If inline list like [a, b]
             if val.startswith("[") and val.endswith("]"):
                 inner = val[1:-1].strip()
@@ -80,7 +80,7 @@ def parse_frontmatter(fm_text):
 def check_file_resolved(target, base_dir, wiki_map):
     target_clean = clean_str(target)
     target_lower = target_clean.lower()
-    
+
     if target_lower.startswith("wiki/"):
         clean_target = target_clean[5:]
         if clean_target.lower() in wiki_map:
@@ -165,21 +165,21 @@ VALID_TYPES = {"Library", "Concept", "Person", "Project", "Decision", "Synthesis
 for fpath in wiki_files:
     with open(fpath, "r", encoding="utf-8") as f:
         content = f.read()
-    
+
     # Parse YAML frontmatter
     fm_match = re.match(r"^---\s*\n(.*?)\n---\s*\n", content, re.DOTALL)
     if fm_match:
         fm_text = fm_match.group(1)
         try:
             fm = parse_frontmatter(fm_text)
-            
+
             # --- Schema Validation ---
             mtype = fm.get("type")
             if not mtype:
                 schema_errors.append(f"{fpath}: Missing 'type' field in frontmatter")
             elif mtype not in VALID_TYPES:
                 schema_errors.append(f"{fpath}: Invalid type '{mtype}' (must be one of {VALID_TYPES})")
-                
+
             confidence = fm.get("confidence")
             if confidence is not None:
                 try:
@@ -188,14 +188,14 @@ for fpath in wiki_files:
                         schema_errors.append(f"{fpath}: Confidence value {confidence} is out of bounds (0.0 - 1.0)")
                 except ValueError:
                     schema_errors.append(f"{fpath}: Confidence '{confidence}' is not a valid float")
-            
+
             last_confirmed = fm.get("last_confirmed")
             if last_confirmed is not None:
                 try:
                     datetime.strptime(str(last_confirmed).strip(), "%Y-%m-%d")
                 except ValueError:
                     schema_errors.append(f"{fpath}: last_confirmed date '{last_confirmed}' is not in YYYY-MM-DD format")
-            
+
             # --- Decay Checking ---
             if confidence is not None and last_confirmed is not None:
                 try:
@@ -216,7 +216,7 @@ for fpath in wiki_files:
                             })
                 except Exception:
                     pass
-                    
+
             # --- Sources Link Check inside frontmatter ---
             sources = fm.get("sources", [])
             if isinstance(sources, list):
@@ -243,14 +243,14 @@ for fpath in wiki_files:
                         })
         except Exception as e:
             schema_errors.append(f"{fpath}: Failed to parse YAML frontmatter: {str(e)}")
-            
+
     # Find all Wikilinks in content
     wikilinks = re.findall(r"\[\[([^\]]+)\]\]", content)
     for link in wikilinks:
         target = clean_str(link.split("|")[0].strip())
         target_file = clean_str(target.split("#")[0].strip())
         resolved = check_file_resolved(target_file, base_dir, wiki_map)
-        
+
         if resolved:
             # If it's a valid wiki link, record incoming link
             target_lower = target_file.lower()
@@ -268,7 +268,7 @@ for fpath in wiki_files:
                 "link_text": link,
                 "resolved_target": target
             })
-            
+
     # Find all standard Markdown links in content
     markdown_links = re.findall(r"\[([^\]]*)\]\(([^)]+)\)", content)
     for label, url in markdown_links:
@@ -362,72 +362,76 @@ for se in schema_errors:
 def run_scheduled_tasks_gc():
     import json
     import shutil
-    
+
     home = os.path.expanduser("~")
     events_dir = os.path.join(home, ".gemini", "antigravity", "sidecar_data", "lint-and-scale", "events")
-    if not os.path.exists(events_dir):
-        return
-        
-    current_time = datetime.now().timestamp()
-    expire_seconds = 7 * 24 * 3600  # 7 天
-    deleted_sessions = []
-    
-    for filename in os.listdir(events_dir):
-        if not filename.endswith(".json"):
-            continue
-        filepath = os.path.join(events_dir, filename)
-        try:
-            mtime = os.path.getmtime(filepath)
-            if current_time - mtime > expire_seconds:
-                with open(filepath, "r", encoding="utf-8") as f:
-                    event_data = json.load(f)
-                conv_id = event_data.get("payload", {}).get("newConversation", {}).get("conversationId")
-                if conv_id:
-                    # 本地路径定义
-                    paths_to_delete = [
-                        os.path.join(home, ".gemini", "antigravity", "brain", conv_id),
-                        os.path.join(home, ".gemini", "antigravity-cli", "brain", conv_id),
-                    ]
-                    files_to_delete = [
-                        os.path.join(home, ".gemini", "antigravity", "conversations", f"{conv_id}.db"),
-                        os.path.join(home, ".gemini", "antigravity", "conversations", f"{conv_id}.db-shm"),
-                        os.path.join(home, ".gemini", "antigravity", "conversations", f"{conv_id}.db-wal"),
-                        os.path.join(home, ".gemini", "antigravity-cli", "conversations", f"{conv_id}.db"),
-                        os.path.join(home, ".gemini", "antigravity-cli", "conversations", f"{conv_id}.db-shm"),
-                        os.path.join(home, ".gemini", "antigravity-cli", "conversations", f"{conv_id}.db-wal"),
-                    ]
-                    
-                    success = True
-                    for dp in paths_to_delete:
-                        if os.path.exists(dp):
-                            try:
-                                shutil.rmtree(dp)
-                            except Exception:
-                                pass
+    try:
+        if not os.path.exists(events_dir):
+            return
+
+        current_time = datetime.now().timestamp()
+        expire_seconds = 7 * 24 * 3600  # 7 天
+        deleted_sessions = []
+
+        for filename in os.listdir(events_dir):
+            if not filename.endswith(".json"):
+                continue
+            filepath = os.path.join(events_dir, filename)
+            try:
+                mtime = os.path.getmtime(filepath)
+                if current_time - mtime > expire_seconds:
+                    with open(filepath, "r", encoding="utf-8") as f:
+                        event_data = json.load(f)
+                    conv_id = event_data.get("payload", {}).get("newConversation", {}).get("conversationId")
+                    if conv_id:
+                        # 本地路径定义
+                        paths_to_delete = [
+                            os.path.join(home, ".gemini", "antigravity", "brain", conv_id),
+                            os.path.join(home, ".gemini", "antigravity-cli", "brain", conv_id),
+                        ]
+                        files_to_delete = [
+                            os.path.join(home, ".gemini", "antigravity", "conversations", f"{conv_id}.db"),
+                            os.path.join(home, ".gemini", "antigravity", "conversations", f"{conv_id}.db-shm"),
+                            os.path.join(home, ".gemini", "antigravity", "conversations", f"{conv_id}.db-wal"),
+                            os.path.join(home, ".gemini", "antigravity-cli", "conversations", f"{conv_id}.db"),
+                            os.path.join(home, ".gemini", "antigravity-cli", "conversations", f"{conv_id}.db-shm"),
+                            os.path.join(home, ".gemini", "antigravity-cli", "conversations", f"{conv_id}.db-wal"),
+                        ]
+
+                        success = True
+                        for dp in paths_to_delete:
                             if os.path.exists(dp):
-                                success = False
-                    for fp in files_to_delete:
-                        if os.path.exists(fp):
+                                try:
+                                    shutil.rmtree(dp)
+                                except Exception:
+                                    pass
+                                if os.path.exists(dp):
+                                    success = False
+                        for fp in files_to_delete:
+                            if os.path.exists(fp):
+                                try:
+                                    os.remove(fp)
+                                except Exception:
+                                    pass
+                                if os.path.exists(fp):
+                                    success = False
+
+                        if success:
+                            deleted_sessions.append(conv_id)
                             try:
-                                os.remove(fp)
+                                os.remove(filepath)
                             except Exception:
                                 pass
-                            if os.path.exists(fp):
-                                success = False
-                                
-                    if success:
-                        deleted_sessions.append(conv_id)
-                        try:
-                            os.remove(filepath)
-                        except Exception:
-                            pass
-        except Exception as e:
-            pass
-            
-    if deleted_sessions:
-        print("\n=== CLEANED EXPIRED SCHEDULED SESSIONS ===")
-        for cid in deleted_sessions:
-            print(f"Cleaned expired conversation: {cid}")
+            except Exception as e:
+                pass
+
+        if deleted_sessions:
+            print("\n=== CLEANED EXPIRED SCHEDULED SESSIONS ===")
+            for cid in deleted_sessions:
+                print(f"Cleaned expired conversation: {cid}")
+    except (PermissionError, OSError):
+        # 沙箱受限模式下跳过 GC，避免触发物理审批；后台无限制模式下正常全量执行
+        return
 
 run_scheduled_tasks_gc()
 

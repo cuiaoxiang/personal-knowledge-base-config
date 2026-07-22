@@ -22,10 +22,11 @@ description: Compile raw files in sources/ into structured wiki pages, perform d
        - 正文仅提炼写入论文的深度核心大纲、摘要与关键发现（总行数控制在 1000 行以内），不包含任何正文 PDF 超链接。
     3. **重定向指针**：将当前处理目标重新指向该新生成的 `.md` 提炼页，继续执行后续解析。
   - **如果路径是 `.md` 文件**（例如 `sources/chats/💬 Antigravity-研究日志.md`）：Agent 直接定位并读取该文件。
-- **全局增量录入**：若用户未指定路径（仅输入 `/ingest`）：
+- **全局增量录入与外部 Vault 同步**：若用户未指定路径（仅输入 `/ingest`）：
   1. 读取本库根目录下的时间戳记录文件 `.last_sync_time`。
-  2. 遍历 `sources/chats/`、`sources/clippings/`、`sources/transcripts/` 和 `sources/papers/` 目录，获取每个文件的最近修改时间 `mtime`。
-  3. 筛选出所有满足 `mtime > .last_sync_time` 的新增或被修改的文件作为待处理队列。
+  2. 遍历 `sources/chats/`、`sources/clippings/`、`sources/transcripts/` 和 `sources/papers/` 目录，获取文件的修改时间。
+  3. 若涉及外部白名单 Vault 目录检索，**必须全量使用 Native API (`list_dir` / `view_file`) 进行免审批读取，严禁运行带 BypassSandbox 的终端 Shell 命令**。
+  4. 筛选出所有满足 `mtime > .last_sync_time` 的新增或被修改的文件作为待处理队列。
 - **行数控制**：确认单次处理总行数不超过 1000 行（指生成的 Markdown 总行数）。若超出，向用户提议分批（Batching）处理。
 
 ### 2. 差异化读取与增量逻辑

@@ -15,9 +15,9 @@ description: Scan the wiki for dead links, orphaned pages, orphaned attachments,
 
 ### 自愈运行模式划分 (Execution Modes)
 - **交互模式（用户在线输入 `/lint`）**：为了最大化节省 Token 消耗并缩短执行耗时，Agent 应当使用 `run_command` 运行内置的本地分析脚本：
-  `python3 .agents/skills/lint/scripts/analyze_wiki.py`
+  `python3 .agents/skills/lint/scripts/analyze_wiki.py` (注：必须保持 `BypassSandbox: false` 在本地沙箱内运行，严禁请求 BypassSandbox 权限)。
   此脚本将在毫秒级内完成死链、孤立文件、孤立图片及置信度衰减的全量扫描，并将结果返回给 Agent，避免了加载 60+ 文件对大模型上下文的严重污染。
-- **定时任务模式（Scheduled Task 无人值守）**：在此模式下，Agent 可以自由运行已获授权的内置分析脚本（如 `python3 .agents/skills/lint/scripts/analyze_wiki.py`）并直接调用 Native APIs 进行文件修改（如自愈修复死链、更新置信度衰减、写入报告与时间戳等）。**在此模式下，严禁抛出任何需要用户参与的交互式确认操作（如 `ask_question` 对话框，或在 `implementation_plan.md` 中配置 `RequestFeedback: true` 触发的 Proceed 按钮）**，所有自愈修改与文件写入必须在后台全自动静默完成，以实现完全无感的自愈运行。
+- **定时任务模式（Scheduled Task 无人值守）**：在此模式下，Agent 可以自由运行内置分析脚本 `python3 .agents/skills/lint/scripts/analyze_wiki.py`（沙箱内运行）并直接调用 Native APIs 进行文件修改与外部 Vault 读取（使用 `list_dir` / `view_file` / `write_to_file`）。**严禁使用任何带 BypassSandbox: true 的跨目录 Shell 脚本命令，严禁抛出任何物理审批或交互弹窗**，所有自愈修改与文件写入必须全自动静默完成。
 
 ### 1. 链接与孤立页面扫描
 - **死链检查**：遍历所有 `wiki/` 下的 Markdown 文件，提取所有 Obsidian Wikilinks（形如 `[[wiki/文件名]]` 或 `[[文件名]]`）。
