@@ -24,9 +24,9 @@ description: Compile raw files in sources/ into structured wiki pages, perform d
   - **如果路径是 `.md` 文件**（例如 `sources/chats/💬 Antigravity-研究日志.md`）：Agent 直接定位并读取该文件。
 - **全局增量录入与外部 Vault 同步**：若用户未指定路径（仅输入 `/ingest`）：
   1. 读取本库根目录下的时间戳记录文件 `.last_sync_time`。
-  2. 遍历 `sources/chats/`、`sources/clippings/`、`sources/transcripts/` 和 `sources/papers/` 目录，获取文件的修改时间。
-  3. 若涉及外部白名单 Vault 目录检索，**必须全量使用 Native API (`list_dir` / `view_file`) 进行免审批读取，严禁运行带 BypassSandbox 的终端 Shell 命令**。
-  4. 筛选出所有满足 `mtime > .last_sync_time` 的新增或被修改的文件作为待处理队列。
+  2. **增量检测与时间戳检索（严禁单纯依赖文件数量计数）**：
+     在沙箱内运行内置检测脚本（`BypassSandbox: false`），统一检索本地信源与外部白名单目录中所有文件的真实修改时间（`mtime`），筛选所有满足 `mtime > .last_sync_time` 的新增或被修改文件加入待处理队列，实现毫秒级精准过滤与零上下文污染。
+  3. 针对待处理队列中的变更文件，使用只读 Native API (`view_file`) 读取正文并进行增量知识提炼，严禁运行带 `BypassSandbox: true` 的越权 Shell 命令。
 - **行数控制**：确认单次处理总行数不超过 1000 行（指生成的 Markdown 总行数）。若超出，向用户提议分批（Batching）处理。
 
 ### 2. 差异化读取与增量逻辑
