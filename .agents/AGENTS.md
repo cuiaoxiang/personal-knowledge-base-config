@@ -12,7 +12,7 @@
    - `git fetch origin`
    - `git merge-base --is-ancestor origin/main HEAD`
    如果上一步返回非 0（即远程 HEAD 不是本地的祖先，说明本地落后或分叉），Agent 必须先执行 `git reset --mixed origin/main`，然后再进行 commit。这可无损对齐远程并保留工作区的所有修改。
-4. **排除忽略文件的前置判断 (Ignore-first)**：在触发上述任何 Git 检查和提交动作前，必须首先检查变更文件是否均被 `.gitignore` 规则所忽略。若当前会话修改的所有文件均被忽略（工作区没有需要追踪的有效变更），应当直接跳过所有的 Git 基底状态检查及提交操作，避免冗余的命令行开销。
+4. **排除忽略文件的前置判断 (Ignore-first)**：发出任何 git 命令前，必须先用 `grep` 或 `view_file` 读取项目级 `.gitignore`，确认有未被忽略的有效变更文件后才允许继续。若所有变更均被忽略，直接跳过全部 Git 操作。**多级 `.gitignore` 检查范围**：Git 存在项目级、全局级（`~/.gitconfig` 中 `core.excludesFile`）与本地级（`.git/info/exclude`）三层忽略规则，理论上需全部检查。但若项目级 `.gitignore` 采用白名单策略（即以 `*` 全量忽略后再通过 `!` 逐一例外），则非白名单文件无论全局规则如何配置均必然被忽略，读取项目级 `.gitignore` 即可做出完整判断，无需额外读取全局 `.gitignore`。若项目级 `.gitignore` 不是白名单策略，则须同时检查全局级规则。
 
 ---
 
